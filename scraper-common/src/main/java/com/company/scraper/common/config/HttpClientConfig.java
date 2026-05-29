@@ -4,7 +4,8 @@ import com.company.scraper.common.http.UserAgentRotator;
 import java.time.Duration;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
-import org.apache.hc.client5.http.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;

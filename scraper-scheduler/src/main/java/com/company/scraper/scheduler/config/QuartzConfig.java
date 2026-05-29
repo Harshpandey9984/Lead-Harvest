@@ -4,7 +4,8 @@ import com.company.scraper.scheduler.job.ScrapeDispatchJob;
 import org.quartz.JobDetail;
 import org.quartz.Trigger;
 import org.quartz.spi.JobFactory;
-import org.springframework.beans.factory.AutowireCapableBeanFactory;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
