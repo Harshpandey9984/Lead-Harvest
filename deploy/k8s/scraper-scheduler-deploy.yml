@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scraper-scheduler
+  namespace: scraper-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scraper-scheduler
+  template:
+    metadata:
+      labels:
+        app: scraper-scheduler
+    spec:
+      containers:
+        - name: scraper-scheduler
+          image: scraper-scheduler:1.0.0
+          ports:
+            - containerPort: 8082
+          env:
+            - name: POSTGRES_URL
+              value: jdbc:postgresql://postgres:5432/scraper
+            - name: POSTGRES_USER
+              value: scraper
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: scraper-secrets
+                  key: postgres-password
+            - name: KAFKA_BOOTSTRAP
+              value: kafka:9092
+            - name: REDIS_HOST
+              value: redis
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 20
+            periodSeconds: 10

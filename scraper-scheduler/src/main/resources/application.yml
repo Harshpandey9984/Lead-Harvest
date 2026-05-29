@@ -1,0 +1,40 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: scraper-scheduler
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/scraper}
+    username: ${POSTGRES_USER:scraper}
+    password: ${POSTGRES_PASSWORD:scraper}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+  quartz:
+    job-store-type: memory
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+
+scraper:
+  kafka:
+    scrape-topic: scrape.tasks
+    retry-topic: scrape.retry
+    dlq-topic: scrape.dlq
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: scraper-scheduler

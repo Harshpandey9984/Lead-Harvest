@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "scraper-api"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["scraper-api:8080"]
+  - job_name: "scraper-worker"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["scraper-worker:8081"]
+  - job_name: "scraper-scheduler"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["scraper-scheduler:8082"]

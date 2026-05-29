@@ -1,0 +1,26 @@
+namespace: scraper-platform
+
+images:
+  api: scraper-api:1.0.0
+  worker: scraper-worker:1.0.0
+  scheduler: scraper-scheduler:1.0.0
+
+replicas:
+  api: 2
+  worker: 4
+  scheduler: 1
+
+postgres:
+  host: postgres
+  database: scraper
+  user: scraper
+  password: scraper
+
+redis:
+  host: redis
+  port: 6379
+
+kafka:
+  bootstrap: kafka:9092
+
+apiKey: change-me

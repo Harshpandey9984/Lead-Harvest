@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scraper-api
+  namespace: scraper-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: scraper-api
+  template:
+    metadata:
+      labels:
+        app: scraper-api
+    spec:
+      containers:
+        - name: scraper-api
+          image: scraper-api:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POSTGRES_URL
+              value: jdbc:postgresql://postgres:5432/scraper
+            - name: POSTGRES_USER
+              value: scraper
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: scraper-secrets
+                  key: postgres-password
+            - name: KAFKA_BOOTSTRAP
+              value: kafka:9092
+            - name: REDIS_HOST
+              value: redis
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: scraper-secrets
+                  key: api-key
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scraper-api
+  namespace: scraper-platform
+spec:
+  selector:
+    app: scraper-api
+  ports:
+    - port: 80
+      targetPort: 8080

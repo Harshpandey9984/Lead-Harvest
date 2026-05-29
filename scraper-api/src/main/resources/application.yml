@@ -1,0 +1,77 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: scraper-api
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/scraper}
+    username: ${POSTGRES_USER:scraper}
+    password: ${POSTGRES_PASSWORD:scraper}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+security:
+  api-key: ${API_KEY:}
+
+scraper:
+  concurrency:
+    worker-threads: 32
+    browser-threads: 8
+    max-queue-depth: 50000
+  http:
+    connect-timeout: 10s
+    read-timeout: 30s
+    write-timeout: 15s
+    max-total-connections: 1000
+    max-per-route: 200
+    http2-enabled: true
+  proxy:
+    enabled: true
+  kafka:
+    scrape-topic: scrape.tasks
+    retry-topic: scrape.retry
+    dlq-topic: scrape.dlq
+  notification:
+    telegram-bot-token: ${TELEGRAM_BOT_TOKEN:}
+    telegram-chat-id: ${TELEGRAM_CHAT_ID:}
+    webhook-url: ${WEBHOOK_URL:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: scraper-api

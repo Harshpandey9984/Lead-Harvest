@@ -1,0 +1,22 @@
+{
+  "title": "Scraper Platform Overview",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Scrape Success vs Failure",
+      "targets": [
+        { "expr": "scraper_requests_success_total", "legendFormat": "success" },
+        { "expr": "scraper_requests_failure_total", "legendFormat": "failure" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Scrape Latency",
+      "targets": [
+        { "expr": "scraper_requests_latency_seconds_sum / scraper_requests_latency_seconds_count", "legendFormat": "avg_latency" }
+      ]
+    }
+  ],
+  "schemaVersion": 16,
+  "version": 1
+}

@@ -1,0 +1,56 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: scraper-worker
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/scraper}
+    username: ${POSTGRES_USER:scraper}
+    password: ${POSTGRES_PASSWORD:scraper}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: scraper-workers
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.company.scraper.common.dto
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+
+scraper:
+  concurrency:
+    worker-threads: 32
+    browser-threads: 8
+    max-queue-depth: 50000
+  http:
+    connect-timeout: 10s
+    read-timeout: 30s
+    write-timeout: 15s
+    max-total-connections: 1000
+    max-per-route: 200
+    http2-enabled: true
+  kafka:
+    scrape-topic: scrape.tasks
+    retry-topic: scrape.retry
+    dlq-topic: scrape.dlq
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: scraper-worker
