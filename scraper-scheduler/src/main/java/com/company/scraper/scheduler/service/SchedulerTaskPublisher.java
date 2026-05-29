@@ -34,10 +34,12 @@ public class SchedulerTaskPublisher {
             target.getUrl(),
             target.getMethod(),
             target.getTargetType(),
-            toMap(target.getHeaders()),
+            toStringMap(target.getHeaders()),
+
             target.getBody(),
             toStringMap(target.getSelectors()),
             toMap(target.getPagination()),
+
             0,
             Instant.now()
         );
@@ -48,8 +50,13 @@ public class SchedulerTaskPublisher {
         if (json == null) {
             return null;
         }
-        return mapper.convertValue(JsonUtils.toMap(mapper, json), Map.class);
+        // JsonUtils#toMap returns Map<String, Object>, but ScrapeTask expects Map<String, String>
+        Map<String, Object> raw = JsonUtils.toMap(mapper, json);
+        return mapper.convertValue(raw, new com.fasterxml.jackson.core.type.TypeReference<Map<String, String>>() {
+        });
     }
+
+
 
     private Map<String, Object> toMap(String json) {
         if (json == null) {

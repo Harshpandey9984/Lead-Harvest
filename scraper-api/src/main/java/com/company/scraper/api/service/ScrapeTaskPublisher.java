@@ -34,7 +34,7 @@ public class ScrapeTaskPublisher {
             target.getUrl(),
             target.getMethod(),
             target.getTargetType(),
-            toMap(target.getHeaders()),
+            toStringMap(target.getHeaders()),
             target.getBody(),
             toStringMap(target.getSelectors()),
             toMap(target.getPagination()),
@@ -48,8 +48,11 @@ public class ScrapeTaskPublisher {
         if (json == null) {
             return null;
         }
-        return mapper.convertValue(JsonUtils.toMap(mapper, json), Map.class);
+        Map<String, Object> raw = JsonUtils.toMap(mapper, json);
+        return mapper.convertValue(raw, new com.fasterxml.jackson.core.type.TypeReference<Map<String, String>>() {
+        });
     }
+
 
     private Map<String, Object> toMap(String json) {
         if (json == null) {

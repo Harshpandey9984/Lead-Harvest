@@ -29,6 +29,10 @@ spring:
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   mail:
     host: ${SMTP_HOST:}
     port: ${SMTP_PORT:587}
@@ -68,6 +72,14 @@ scraper:
     webhook-url: ${WEBHOOK_URL:}
 
 management:
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:

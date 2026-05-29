@@ -12,6 +12,7 @@ import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -21,18 +22,18 @@ public class NotificationService {
 
     private static final MediaType JSON = MediaType.parse("application/json");
 
-    private final JavaMailSender mailSender;
+    private final ObjectProvider<JavaMailSender> mailSenderProvider;
     private final OkHttpClient httpClient;
     private final NotificationRepository repository;
     private final AppProperties properties;
     private final ObjectMapper mapper;
 
-    public NotificationService(JavaMailSender mailSender,
+    public NotificationService(ObjectProvider<JavaMailSender> mailSenderProvider,
                                OkHttpClient httpClient,
                                NotificationRepository repository,
                                AppProperties properties,
                                ObjectMapper mapper) {
-        this.mailSender = mailSender;
+        this.mailSenderProvider = mailSenderProvider;
         this.httpClient = httpClient;
         this.repository = repository;
         this.properties = properties;
@@ -64,6 +65,10 @@ public class NotificationService {
     }
 
     private void sendEmail(NotificationRequest request) {
+        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
+        if (mailSender == null) {
+            throw new IllegalStateException("Email is not configured (JavaMailSender bean not available)");
+        }
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(request.recipient());
         message.setSubject("Scraper Notification");
