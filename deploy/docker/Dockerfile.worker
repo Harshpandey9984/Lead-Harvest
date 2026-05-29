@@ -2,7 +2,9 @@ FROM maven:3.9.8-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml ./
 COPY scraper-common ./scraper-common
+COPY scraper-api ./scraper-api
 COPY scraper-worker ./scraper-worker
+COPY scraper-scheduler ./scraper-scheduler
 RUN mvn -q -pl scraper-worker -am -DskipTests package
 
 FROM eclipse-temurin:21-jre

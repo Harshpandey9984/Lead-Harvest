@@ -3,6 +3,8 @@ WORKDIR /app
 COPY pom.xml ./
 COPY scraper-common ./scraper-common
 COPY scraper-api ./scraper-api
+COPY scraper-worker ./scraper-worker
+COPY scraper-scheduler ./scraper-scheduler
 RUN mvn -q -pl scraper-api -am -DskipTests package
 
 FROM eclipse-temurin:21-jre
