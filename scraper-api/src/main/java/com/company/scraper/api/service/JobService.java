@@ -9,6 +9,7 @@ import com.company.scraper.common.repository.ScrapeJobRepository;
 import com.company.scraper.common.repository.ScrapeTargetRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,6 +64,11 @@ public class JobService {
     public ScrapeJob getJob(Long jobId) {
         return jobRepository.findById(jobId)
             .orElseThrow(() -> new IllegalArgumentException("Job not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ScrapeJob> getAllJobs() {
+        return jobRepository.findAll();
     }
 
     private String toJson(Object payload) {

@@ -39,6 +39,16 @@ public class JobController {
         return ResponseEntity.ok(jobService.createJob(request));
     }
 
+    @GetMapping
+    public ResponseEntity<List<ScrapeJob>> listJobs() {
+        return ResponseEntity.ok(jobService.getAllJobs());
+    }
+
+    @GetMapping("/{jobId}")
+    public ResponseEntity<ScrapeJob> getJob(@PathVariable Long jobId) {
+        return ResponseEntity.ok(jobService.getJob(jobId));
+    }
+
     @PostMapping("/{jobId}/targets")
     public ResponseEntity<ScrapeTarget> addTarget(@PathVariable Long jobId,
                                                   @Valid @RequestBody CreateTargetRequest request) {
