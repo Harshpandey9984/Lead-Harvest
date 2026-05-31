@@ -1,317 +1,2352 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Scraper - Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .header p {
-            color: #666;
-        }
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .card h2 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
-        .card-content {
-            color: #666;
-            line-height: 1.6;
-        }
-        .card-content .status {
-            display: inline-block;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-        .status.up {
-            background: #4caf50;
-            color: white;
-        }
-        .status.down {
-            background: #f44336;
-            color: white;
-        }
-        .form-section {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .form-section h2 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            color: #333;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        .button {
-            background: #667eea;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: background 0.3s;
-        }
-        .button:hover {
-            background: #764ba2;
-        }
-        .jobs-list {
-            margin-top: 20px;
-        }
-        .job-item {
-            background: #f9f9f9;
-            padding: 15px;
-            border-left: 4px solid #667eea;
-            margin-bottom: 10px;
-            border-radius: 5px;
-        }
-        .job-item h3 {
-            color: #333;
-            margin-bottom: 5px;
-        }
-        .job-item p {
-            color: #666;
-            font-size: 13px;
-        }
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        .success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark light">
+  <title>Lead Harvest | Website Intelligence Studio</title>
+  <link rel="icon" href="/lead-harvest-logo.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #08111f;
+      --bg-elevated: rgba(12, 22, 39, 0.88);
+      --panel: rgba(15, 28, 48, 0.84);
+      --panel-strong: rgba(18, 34, 57, 0.96);
+      --border: rgba(167, 199, 255, 0.16);
+      --text: #edf5ff;
+      --muted: #93a7c2;
+      --primary: #50d3b5;
+      --primary-strong: #2fb7ff;
+      --accent: #f7b955;
+      --warning: #ffb25f;
+      --danger: #ff7e8a;
+      --success: #63e6be;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --font-display: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+      --font-body: "Segoe UI", system-ui, sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg: #edf3f9;
+      --bg-elevated: rgba(255, 255, 255, 0.86);
+      --panel: rgba(255, 255, 255, 0.86);
+      --panel-strong: rgba(255, 255, 255, 0.98);
+      --border: rgba(20, 42, 74, 0.12);
+      --text: #0d2037;
+      --muted: #5d728d;
+      --shadow: 0 24px 60px rgba(15, 26, 43, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-body);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(80, 211, 181, 0.26), transparent 28%),
+        radial-gradient(circle at top right, rgba(47, 183, 255, 0.18), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(247, 185, 85, 0.13), transparent 24%),
+        linear-gradient(160deg, var(--bg), #0d1626 62%, #09101b 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 42px 42px;
+      pointer-events: none;
+      opacity: 0.24;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.86), transparent 92%);
+    }
+
+    button, input, textarea, select { font: inherit; }
+    a { color: inherit; text-decoration: none; }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 284px minmax(0, 1fr);
+      gap: 22px;
+      padding: 22px;
+      max-width: 1800px;
+      margin: 0 auto;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 22px;
+      height: calc(100vh - 44px);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(9, 18, 31, 0.9), rgba(13, 24, 39, 0.72));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(26px);
+    }
+
+    [data-theme="light"] .sidebar { background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(242, 247, 255, 0.82)); }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(80, 211, 181, 0.22), rgba(47, 183, 255, 0.25));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      overflow: hidden;
+    }
+
+    .brand-mark img { width: 100%; height: 100%; object-fit: cover; }
+    .brand-title { display: flex; flex-direction: column; gap: 4px; }
+    .brand-title strong {
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .brand-title span { color: var(--muted); font-size: 0.86rem; }
+
+    .sidebar nav { display: grid; gap: 8px; }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      color: var(--muted);
+      border: 1px solid transparent;
+      background: transparent;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+    .nav-link:hover, .nav-link.active {
+      color: var(--text);
+      background: rgba(80, 211, 181, 0.1);
+      border-color: rgba(80, 211, 181, 0.18);
+      transform: translateX(2px);
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      display: grid;
+      gap: 12px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .main { display: grid; gap: 20px; min-width: 0; }
+    .hero, .panel, .history-shell, .crm-shell, .footer-shell {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(24px);
+    }
+
+    .hero {
+      padding: 22px;
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+      align-items: start;
+    }
+
+    .hero-copy { display: grid; gap: 16px; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(80, 211, 181, 0.12);
+      color: var(--primary);
+      border: 1px solid rgba(80, 211, 181, 0.18);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+    .hero h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(2.3rem, 4vw, 4.9rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+    }
+    .hero p {
+      margin: 0;
+      max-width: 72ch;
+      color: var(--muted);
+      font-size: 1.02rem;
+      line-height: 1.72;
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 14px;
+      padding: 13px 16px;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+      box-shadow: 0 14px 32px rgba(47, 183, 255, 0.22);
+      transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    .btn.secondary {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border);
+      box-shadow: none;
+    }
+    .btn.warning { background: linear-gradient(135deg, #ffb25f, #ff8f5c); }
+    .btn.ghost {
+      background: transparent;
+      color: var(--muted);
+      border-color: var(--border);
+      box-shadow: none;
+    }
+
+    .hero-meta {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+    }
+    .hero-meta-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .hero-meta-item:last-child { padding-bottom: 0; border-bottom: 0; }
+    .hero-meta-item span:first-child, .metric-label, .section-label, .mini-label, .table-head, .column-label, .meta-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .hero-meta-item strong, .hero-meta-item em, .metric-value, .field-value { font-style: normal; font-weight: 700; }
+
+    .toolbar, .action-row, .filter-bar, .view-switch, .file-row, .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .toolbar { justify-content: space-between; align-items: stretch; }
+    .search-box, .filter-input, .text-input, .select-input, .textarea-input {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      padding: 13px 14px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .search-box:focus, .filter-input:focus, .text-input:focus, .select-input:focus, .textarea-input:focus {
+      border-color: rgba(80, 211, 181, 0.5);
+      box-shadow: 0 0 0 4px rgba(80, 211, 181, 0.12);
+    }
+
+    .section-grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+    .metric-card {
+      grid-column: span 3;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--border);
+      display: grid;
+      gap: 14px;
+      min-height: 148px;
+    }
+    .metric-card .metric-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(80, 211, 181, 0.22), rgba(47, 183, 255, 0.2));
+      color: var(--text);
+      font-size: 1.15rem;
+    }
+    .metric-value {
+      font-size: 2rem;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .metric-subtext { color: var(--muted); font-size: 0.91rem; line-height: 1.55; }
+
+    .studio-grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+    }
+    .panel { padding: 18px; display: grid; gap: 18px; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .panel-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.18rem;
+      letter-spacing: -0.03em;
+    }
+    .panel-subtitle { margin: 6px 0 0; color: var(--muted); line-height: 1.55; font-size: 0.92rem; }
+
+    .browser-frame {
+      position: relative;
+      min-height: 610px;
+      border-radius: 26px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: linear-gradient(180deg, rgba(8, 16, 27, 0.94), rgba(10, 20, 34, 0.97));
+    }
+    .browser-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .browser-dots { display: flex; gap: 7px; }
+    .browser-dots span {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .browser-dots span:nth-child(1) { background: #ff6b6b; }
+    .browser-dots span:nth-child(2) { background: #ffd166; }
+    .browser-dots span:nth-child(3) { background: #63e6be; }
+    .browser-url {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 10px 14px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.02);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .preview-area {
+      position: relative;
+      min-height: 546px;
+      display: grid;
+      grid-template-rows: 1fr;
+    }
+    .preview-iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+    .preview-fallback {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      color: white;
+      background:
+        radial-gradient(circle at top right, rgba(80, 211, 181, 0.18), transparent 30%),
+        linear-gradient(180deg, rgba(8, 16, 27, 0.5), rgba(8, 16, 27, 0.92));
+    }
+    .preview-card {
+      width: min(92%, 540px);
+      padding: 22px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(8, 16, 27, 0.72);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+      display: grid;
+      gap: 14px;
+      backdrop-filter: blur(18px);
+    }
+    .preview-card h3 { margin: 0; font-size: 1.2rem; }
+    .preview-card p { margin: 0; color: rgba(255, 255, 255, 0.72); line-height: 1.65; }
+    .preview-markers {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: grid;
+    }
+    .marker {
+      position: absolute;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+    }
+    .marker.phone { background: rgba(99, 230, 190, 0.92); color: #0a1a13; }
+    .marker.email { background: rgba(47, 183, 255, 0.92); color: #06121f; }
+    .marker.social { background: rgba(159, 122, 234, 0.94); color: #fff; }
+    .marker.business { background: rgba(247, 185, 85, 0.94); color: #281b06; }
+    .marker.service { background: rgba(255, 126, 138, 0.94); color: #1d090c; }
+
+    .inspector-stack { display: grid; gap: 14px; }
+    .inspect-panel, .validation-panel, .side-panel, .sub-panel {
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      display: grid;
+      gap: 14px;
+    }
+    .inspect-grid { display: grid; gap: 10px; }
+    .inspect-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.025);
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+    .inspect-chip:hover, .inspect-chip.active {
+      transform: translateX(2px);
+      border-color: rgba(80, 211, 181, 0.32);
+    }
+    .confidence-bar {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .confidence-bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--primary), var(--primary-strong));
+    }
+    .preview-fields, .mini-grid, .history-filters, .analytics-grid, .quality-grid, .performance-grid, .logo-grid { display: grid; gap: 12px; }
+    .preview-field {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      display: grid;
+      gap: 6px;
+    }
+    .preview-field strong { font-size: 1rem; letter-spacing: -0.02em; }
+    .preview-field small { color: var(--muted); line-height: 1.55; }
+
+    .studio-headers, .section-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .section-header h2, .section-header h3 {
+      margin: 0;
+      font-family: var(--font-display);
+      letter-spacing: -0.03em;
+    }
+    .section-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      max-width: 72ch;
+      line-height: 1.6;
+    }
+
+    .url-box {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: minmax(0, 1fr) 240px;
+      align-items: start;
+    }
+    .url-box textarea { min-height: 134px; resize: vertical; }
+    .upload-card {
+      border: 1px dashed rgba(80, 211, 181, 0.28);
+      background: rgba(80, 211, 181, 0.05);
+      border-radius: 18px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .upload-card input[type="file"] { color: var(--muted); }
+
+    .history-shell { padding: 18px; display: grid; gap: 18px; }
+    .history-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .history-grid { display: grid; gap: 14px; }
+    .history-table-wrap {
+      overflow: auto;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 1180px; }
+    th, td {
+      padding: 14px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      vertical-align: top;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: rgba(10, 18, 30, 0.96);
+      backdrop-filter: blur(12px);
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    [data-theme="light"] th { background: rgba(247, 250, 255, 0.96); }
+    tr:hover td { background: rgba(80, 211, 181, 0.04); }
+    .row-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .pill.good { color: #5de7c2; }
+    .pill.warn { color: #ffcc7d; }
+    .pill.cold { color: #8fb2ff; }
+    .pill.hot { color: #ff8e9a; }
+    .pill.neutral { color: var(--text); }
+    .table-empty, .empty-state { padding: 24px; color: var(--muted); text-align: center; }
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .kanban {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(7, minmax(180px, 1fr));
+    }
+    .kanban-column {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.025);
+      min-height: 240px;
+    }
+    .kanban-column h4 { margin: 0 0 10px; font-size: 0.92rem; }
+    .kanban-card {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .crm-shell { padding: 18px; display: grid; gap: 18px; }
+    .pipeline {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(7, minmax(160px, 1fr));
+      overflow-x: auto;
+    }
+    .pipeline-stage {
+      min-height: 152px;
+      border-radius: 18px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.025);
+      display: grid;
+      gap: 10px;
+    }
+    .pipeline-stage strong { font-size: 0.98rem; }
+    .pipeline-stage .count {
+      width: fit-content;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(80, 211, 181, 0.12);
+      color: var(--primary);
+      font-weight: 800;
+    }
+
+    .analytics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .trend-list { display: grid; gap: 10px; }
+    .trend-item { display: grid; gap: 8px; }
+    .trend-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .bar-track {
+      height: 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--primary), var(--primary-strong));
+    }
+
+    .footer-shell {
+      padding: 18px;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(3, 8, 14, 0.72);
+      backdrop-filter: blur(10px);
+      z-index: 30;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: min(720px, 100%);
+      padding: 20px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 16px;
+    }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      min-width: 260px;
+      max-width: min(92vw, 460px);
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(10, 19, 33, 0.96);
+      color: white;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transform: translateY(24px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.24s ease, opacity 0.24s ease;
+      z-index: 50;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .spark { position: relative; overflow: hidden; }
+    .spark::after {
+      content: "";
+      position: absolute;
+      inset: auto -24px -24px auto;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(80, 211, 181, 0.22), transparent 62%);
+      pointer-events: none;
+    }
+    .theme-toggle { display: inline-flex; align-items: center; gap: 8px; }
+    .theme-toggle input { display: none; }
+    .theme-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      color: var(--text);
+    }
+    .logo-preview {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 88px minmax(0, 1fr);
+      align-items: center;
+    }
+    .logo-preview img {
+      width: 88px;
+      height: 88px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      padding: 8px;
+    }
+    .logo-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+    .swatch {
+      flex: 1 1 180px;
+      min-width: 180px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      display: grid;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .swatch.dark {
+      background: linear-gradient(135deg, #07111f, #0c1b31);
+      color: white;
+    }
+    .swatch.light { background: linear-gradient(135deg, #f7fbff, #e9f0fb); }
+    .swatch-logo { display: flex; align-items: center; gap: 10px; }
+    .swatch-logo svg { width: 52px; height: 52px; flex: none; }
+    .swatch strong { font-size: 1rem; }
+    .muted { color: var(--muted); }
+    .collapse-note { font-size: 0.84rem; color: var(--muted); line-height: 1.5; }
+    .checkbox-cell { width: 18px; height: 18px; accent-color: var(--primary); }
+    .entity-list { display: grid; gap: 10px; }
+    .entity {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .entity span { color: var(--muted); }
+    .inline-edit { display: grid; gap: 10px; }
+    .inline-edit label {
+      display: grid;
+      gap: 6px;
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+    .inline-edit input, .inline-edit textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+    }
+    .single-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+    @media (max-width: 1480px) {
+      .hero, .studio-grid { grid-template-columns: 1fr; }
+      .metric-card { grid-column: span 4; }
+      .analytics-grid { grid-template-columns: 1fr; }
+      .kanban, .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 1080px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { position: relative; top: auto; height: auto; }
+      .metric-card { grid-column: span 6; }
+      .url-box, .hero { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .app-shell { padding: 14px; }
+      .panel, .hero, .history-shell, .crm-shell, .footer-shell, .sidebar { border-radius: 20px; }
+      .metric-card, .kanban, .pipeline { grid-template-columns: 1fr; }
+      .metric-card { grid-column: span 12; }
+      .browser-frame { min-height: 520px; }
+    }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🕷️ Web Scraper Dashboard</h1>
-            <p>Manage your web scraping jobs efficiently</p>
+<body data-theme="dark">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><img src="/lead-harvest-logo.svg" alt="Lead Harvest logo"></div>
+        <div class="brand-title">
+          <strong>Lead Harvest</strong>
+          <span>Website Intelligence Studio</span>
+        </div>
+      </div>
+
+      <nav>
+        <a class="nav-link active" href="#overview">Overview</a>
+        <a class="nav-link" href="#studio">Visual Studio</a>
+        <a class="nav-link" href="#history">History Grid</a>
+        <a class="nav-link" href="#analytics">Analytics</a>
+        <a class="nav-link" href="#crm">CRM Pipeline</a>
+        <a class="nav-link" href="#logo">Brand Assets</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="chip-row">
+          <span class="chip">Java 21</span>
+          <span class="chip">Spring Boot</span>
+          <span class="chip">PostgreSQL</span>
+          <span class="chip">Kafka</span>
+          <span class="chip">Redis</span>
+        </div>
+        <div class="theme-toggle">
+          <label class="theme-pill" for="themeToggle"><input id="themeToggle" type="checkbox"><span id="themeLabel">Dark mode</span></label>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="hero spark" id="overview">
+        <div class="hero-copy">
+          <span class="eyebrow">Enterprise website intelligence platform</span>
+          <h1>Turn any URL into structured business intelligence, CRM leads, and visual extraction results.</h1>
+          <p>Lead Harvest analyzes single URLs, bulk uploads, domain lists, CSV, TXT, and JSON lists, then converts messy website content into a spreadsheet-style intelligence layer with scoring, history, preview validation, and CRM-ready records.</p>
+          <div class="hero-actions">
+            <button class="btn" id="analyzeButton">Analyze & Preview</button>
+            <button class="btn secondary" id="saveButton">Save to Lead Harvest</button>
+            <button class="btn secondary" id="exportCsvButton">Export CSV</button>
+            <button class="btn secondary" id="exportExcelButton">Export Excel</button>
+            <button class="btn ghost" id="clearHistoryButton">Clear History</button>
+          </div>
+          <div class="chip-row">
+            <span class="chip">Visual website preview</span>
+            <span class="chip">Entity highlighting</span>
+            <span class="chip">Lead scoring</span>
+            <span class="chip">Import / export</span>
+            <span class="chip">History database</span>
+          </div>
+        </div>
+        <div class="hero-meta" id="heroMeta">
+          <div class="hero-meta-item"><span>Platform</span><strong id="platformName">Lead Harvest</strong></div>
+          <div class="hero-meta-item"><span>Dashboard status</span><em id="apiStatus">Connecting</em></div>
+          <div class="hero-meta-item"><span>Analysis mode</span><em>AI + heuristic extraction</em></div>
+          <div class="hero-meta-item"><span>Storage</span><em>IndexedDB history append-only</em></div>
+          <div class="hero-meta-item"><span>Theme</span><em id="themeText">Dark</em></div>
+        </div>
+      </section>
+
+      <section class="section-grid" id="metrics"></section>
+
+      <section class="panel" id="studio">
+        <div class="studio-headers">
+          <div class="section-header">
+            <div>
+              <h2>Visual Website Intelligence Studio</h2>
+              <p>Preview a website, inspect highlighted entities, review extraction confidence, and edit the structured output before saving it to history.</p>
+            </div>
+          </div>
+          <div class="action-row">
+            <span class="chip" id="crawlStateChip">Idle</span>
+            <span class="chip" id="discoveryChip">0 pages discovered</span>
+            <span class="chip" id="confidenceChip">Confidence 0%</span>
+          </div>
         </div>
 
-        <div class="dashboard" id="dashboard">
-            <div class="card">
-                <h2>System Status</h2>
-                <div class="card-content" id="systemStatus">
-                    <p>Loading...</p>
-                </div>
+        <div class="url-box">
+          <div class="sub-panel">
+            <div class="section-header">
+              <div>
+                <h3>URL Intake</h3>
+                <p>Paste one or many URLs, a domain list, or raw text that includes URLs. The analyzer will normalize and process the input batch.</p>
+              </div>
             </div>
-            <div class="card">
-                <h2>Database</h2>
-                <div class="card-content" id="dbStatus">
-                    <p>Loading...</p>
-                </div>
+            <textarea id="urlInput" class="textarea-input" placeholder="Paste one or more clinic, practice, or business URLs here"></textarea>
+            <div class="file-row">
+              <div class="upload-card" style="flex: 1 1 260px;">
+                <strong>Import list</strong>
+                <span class="collapse-note">Accepts CSV, TXT, JSON, or copied spreadsheet text. Excel exports are generated as spreadsheet-compatible XML.</span>
+                <input id="fileInput" type="file" accept=".csv,.txt,.json,.tsv,.xlsx,.xls">
+              </div>
+              <div class="upload-card" style="flex: 1 1 240px;">
+                <strong>Batch controls</strong>
+                <label class="theme-pill" style="justify-content: space-between;"><span>Auto-save after analyze</span><input id="autoSaveToggle" type="checkbox" checked></label>
+                <label class="theme-pill" style="justify-content: space-between;"><span>Use preview studio</span><input id="previewToggle" type="checkbox" checked></label>
+              </div>
             </div>
-            <div class="card">
-                <h2>Cache</h2>
-                <div class="card-content" id="cacheStatus">
-                    <p>Loading...</p>
-                </div>
+            <div class="action-row">
+              <button class="btn" id="startAnalysisButton">Analyze batch</button>
+              <button class="btn secondary" id="savePendingButton">Save pending batch</button>
+              <button class="btn secondary" id="importButton">Import file</button>
             </div>
+          </div>
+          <div class="side-panel">
+            <div class="section-header">
+              <div>
+                <h3>Validation Center</h3>
+                <p>Review the extracted business profile, edit fields, approve, reject, or save into the history grid.</p>
+              </div>
+            </div>
+            <div class="validation-panel" id="validationPanel">
+              <div class="empty-state">No URL analyzed yet. Submit a URL batch to populate the validation center.</div>
+            </div>
+          </div>
         </div>
 
-        <div class="form-section">
-            <h2>Create New Scraping Job</h2>
-            <div id="message"></div>
-            <form id="jobForm">
-                <div class="form-group">
-                    <label for="jobName">Job Name</label>
-                    <input type="text" id="jobName" name="jobName" required placeholder="e.g., Product Price Scraper">
-                </div>
-                <div class="form-group">
-                    <label for="schedule">Schedule (Cron Expression)</label>
-                    <input type="text" id="schedule" name="schedule" required placeholder="0 0 * * * (daily at midnight)">
-                </div>
-                <div class="form-group">
-                    <label for="priority">Priority (1-10)</label>
-                    <input type="number" id="priority" name="priority" min="1" max="10" required value="5">
-                </div>
-                <div class="form-group">
-                    <label for="maxConcurrency">Max Concurrency</label>
-                    <input type="number" id="maxConcurrency" name="maxConcurrency" min="1" max="100" required value="5">
-                </div>
-                <button type="submit" class="button">Create Job</button>
-            </form>
-
-            <div class="jobs-list">
-                <h2 style="color: #333; margin-bottom: 15px;">Active Jobs</h2>
-                <div id="jobsList" style="margin-top: 15px;"></div>
+        <div class="studio-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Website Preview</h3>
+                <p class="panel-subtitle">A browser-style preview with live extraction markers and an element inspector for key entities.</p>
+              </div>
+              <div class="status-row">
+                <span class="pill good" id="previewBadge">Live preview</span>
+                <span class="pill neutral" id="pageBadge">Home</span>
+              </div>
             </div>
+            <div class="browser-frame">
+              <div class="browser-bar">
+                <div class="browser-dots"><span></span><span></span><span></span></div>
+                <div class="browser-url" id="previewUrl">https://lead-harvest.invalid</div>
+              </div>
+              <div class="preview-area">
+                <iframe class="preview-iframe" id="previewFrame" title="Website preview" src="about:blank" sandbox="allow-forms allow-popups allow-scripts"></iframe>
+                <div class="preview-fallback" id="previewFallback">
+                  <div class="preview-card">
+                    <h3>Visual extraction studio ready</h3>
+                    <p>The preview frame renders the target website when framing is allowed. The overlay below highlights the fields Lead Harvest is learning from the page structure and visible content.</p>
+                    <div class="chip-row">
+                      <span class="chip">Business name</span>
+                      <span class="chip">Contact</span>
+                      <span class="chip">Social links</span>
+                      <span class="chip">Services</span>
+                      <span class="chip">Team</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="preview-markers" id="previewMarkers"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="inspector-stack">
+            <div class="inspect-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">Smart Element Inspector</h3>
+                  <p class="panel-subtitle">Click any highlighted entity to inspect the extracted value, selector, XPath, source page, and confidence score.</p>
+                </div>
+              </div>
+              <div class="inspect-grid" id="inspectorList"></div>
+            </div>
+
+            <div class="inspect-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">AI Lead Insights</h3>
+                  <p class="panel-subtitle">Generated lead, website, SEO, and contact quality scores with recommendations.</p>
+                </div>
+              </div>
+              <div class="mini-grid" id="leadInsights"></div>
+              <div class="entity-list" id="recommendations"></div>
+            </div>
+          </div>
         </div>
+      </section>
+
+      <section class="panel" id="analytics">
+        <div class="section-header">
+          <div>
+            <h2>Analytics, Business Discovery, and Data Quality</h2>
+            <p>Industry, geography, lead distribution, and extraction quality summaries generated from the dashboard snapshot and history store.</p>
+          </div>
+        </div>
+        <div class="analytics-grid" id="analyticsGrid"></div>
+      </section>
+
+      <section class="history-shell" id="history">
+        <div class="section-header">
+          <div>
+            <h2>History Excel Database</h2>
+            <p>Every saved analysis becomes a new row. Search, sort, filter, paginate, bulk select, bulk delete, and export the spreadsheet-style history store.</p>
+          </div>
+          <div class="history-actions">
+            <button class="btn secondary" id="exportJsonButton">Export JSON</button>
+            <button class="btn secondary" id="bulkDeleteButton">Bulk Delete</button>
+          </div>
+        </div>
+
+        <div class="history-filters">
+          <div class="filter-bar">
+            <input class="search-box" id="searchInput" placeholder="Search website, business, phone, email, category, status">
+            <select class="select-input" id="statusFilter">
+              <option value="all">All statuses</option>
+              <option value="New">New</option>
+              <option value="Qualified">Qualified</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Meeting Scheduled">Meeting Scheduled</option>
+              <option value="Proposal Sent">Proposal Sent</option>
+              <option value="Won">Won</option>
+              <option value="Lost">Lost</option>
+            </select>
+            <select class="select-input" id="categoryFilter">
+              <option value="all">All categories</option>
+              <option value="Healthcare">Healthcare</option>
+              <option value="Hospitality">Hospitality</option>
+              <option value="Legal Services">Legal Services</option>
+              <option value="E-Commerce">E-Commerce</option>
+              <option value="Agency">Agency</option>
+              <option value="Business Services">Business Services</option>
+            </select>
+            <select class="select-input" id="sortSelect">
+              <option value="date-desc">Date added: newest</option>
+              <option value="date-asc">Date added: oldest</option>
+              <option value="score-desc">Lead score: high to low</option>
+              <option value="score-asc">Lead score: low to high</option>
+              <option value="name-asc">Business name: A-Z</option>
+            </select>
+            <select class="select-input" id="viewSelect">
+              <option value="table">Excel view</option>
+              <option value="cards">Card view</option>
+              <option value="kanban">Kanban view</option>
+            </select>
+          </div>
+          <div class="action-row">
+            <input id="selectAllCheckbox" class="checkbox-cell" type="checkbox">
+            <span class="muted">Select current page</span>
+            <span class="chip" id="historyCountChip">0 records</span>
+          </div>
+        </div>
+
+        <div class="history-grid" id="historyContent"></div>
+        <div class="pagination">
+          <div class="muted" id="paginationInfo">Showing 0 records</div>
+          <div class="action-row">
+            <button class="btn secondary" id="prevPageButton">Previous</button>
+            <button class="btn secondary" id="nextPageButton">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="crm-shell" id="crm">
+        <div class="section-header">
+          <div>
+            <h2>CRM Pipeline</h2>
+            <p>Lead management with statuses, notes, follow-ups, and opportunity tracking in a pipeline format.</p>
+          </div>
+        </div>
+        <div class="pipeline" id="crmPipeline"></div>
+      </section>
+
+      <section class="panel" id="logo">
+        <div class="section-header">
+          <div>
+            <h2>Brand Assets</h2>
+            <p>Premium Lead Harvest logo preview with SVG and downloadable PNG generation inside the browser.</p>
+          </div>
+          <div class="action-row">
+            <button class="btn secondary" id="downloadSvgButton">Download SVG</button>
+            <button class="btn secondary" id="downloadPngButton">Download PNG</button>
+          </div>
+        </div>
+        <div class="logo-grid">
+          <div class="logo-preview">
+            <img src="/lead-harvest-logo.svg" alt="Lead Harvest logo preview">
+            <div>
+              <h3 style="margin: 0 0 8px; font-family: var(--font-display);">Lead Harvest visual identity</h3>
+              <p class="collapse-note">The mark combines a database, globe, data flow, and growth arrow. The SVG asset doubles as the favicon and can be exported as PNG from the browser.</p>
+            </div>
+          </div>
+
+          <div class="logo-swatches">
+            <div class="swatch dark">
+              <div class="swatch-logo">
+                <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="darkGrad" x1="0" x2="1" y1="0" y2="1">
+                      <stop offset="0%" stop-color="#31d0aa" />
+                      <stop offset="55%" stop-color="#3b82f6" />
+                      <stop offset="100%" stop-color="#f59e0b" />
+                    </linearGradient>
+                  </defs>
+                  <rect width="512" height="512" rx="112" fill="#081120"/>
+                  <circle cx="256" cy="250" r="144" fill="none" stroke="url(#darkGrad)" stroke-width="24"/>
+                  <path d="M165 286c18 24 52 38 91 38s73-14 91-38" fill="none" stroke="url(#darkGrad)" stroke-width="20" stroke-linecap="round"/>
+                  <path d="M252 138l52 54h-30v88h-44v-88h-30z" fill="url(#darkGrad)"/>
+                </svg>
+                <div>
+                  <strong>Dark theme variant</strong>
+                  <div class="muted">Premium dark surface for the app shell and header mark.</div>
+                </div>
+              </div>
+            </div>
+            <div class="swatch light">
+              <div class="swatch-logo">
+                <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="lightGrad" x1="0" x2="1" y1="0" y2="1">
+                      <stop offset="0%" stop-color="#14b8a6" />
+                      <stop offset="55%" stop-color="#2563eb" />
+                      <stop offset="100%" stop-color="#d97706" />
+                    </linearGradient>
+                  </defs>
+                  <rect width="512" height="512" rx="112" fill="#f7fbff"/>
+                  <circle cx="256" cy="250" r="144" fill="none" stroke="url(#lightGrad)" stroke-width="24"/>
+                  <path d="M165 286c18 24 52 38 91 38s73-14 91-38" fill="none" stroke="url(#lightGrad)" stroke-width="20" stroke-linecap="round"/>
+                  <path d="M252 138l52 54h-30v88h-44v-88h-30z" fill="url(#lightGrad)"/>
+                </svg>
+                <div>
+                  <strong>Light theme variant</strong>
+                  <div class="muted">High-contrast mark for bright UIs, reports, and export surfaces.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="footer-shell">
+        <div>
+          <strong>Lead Harvest</strong>
+          <div class="collapse-note">Enterprise website intelligence, lead generation, and CRM workspace.</div>
+        </div>
+        <div class="collapse-note">Connects to <span class="single-line">/lh-api/status</span> and <span class="single-line">/lh-api/lead-harvest/dashboard</span> for live data.</div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="confirmModal">
+    <div class="modal">
+      <div class="section-header">
+        <div>
+          <h3 style="margin:0; font-family: var(--font-display);">Clear history?</h3>
+          <p>This will delete every saved Lead Harvest row from the browser history store. This action cannot be undone.</p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" id="cancelClearButton">Cancel</button>
+        <button class="btn warning" id="confirmClearButton">Delete all records</button>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const API_BASE_URL = 'http://localhost:8080';
+  <div class="toast" id="toast"></div>
 
-        // Load system status
-        async function loadSystemStatus() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/actuator/health`);
-                const data = await response.json();
-                
-                document.getElementById('systemStatus').innerHTML = 
-                    `<p>Status: <span class="status ${data.status.toLowerCase()}">${data.status}</span></p>`;
-                
-                document.getElementById('dbStatus').innerHTML = 
-                    `<p>${data.components.db.status} <span class="status up">PostgreSQL</span></p>`;
-                
-                document.getElementById('cacheStatus').innerHTML = 
-                    `<p>${data.components.redis.status} <span class="status up">Redis v${data.components.redis.details.version}</span></p>`;
-            } catch (error) {
-                console.error('Error loading status:', error);
-                document.getElementById('systemStatus').innerHTML = '<p class="error">Failed to load status</p>';
-            }
+  <script>
+    const BACKEND_ORIGIN = 'http://localhost:3100';
+    const USE_LIVE_BACKEND = true;
+    const FALLBACK_SUMMARY = {
+      platformName: 'Lead Harvest',
+      subtitle: 'Enterprise website intelligence, lead generation, CRM, and visual extraction studio',
+      generatedOn: new Date().toISOString().slice(0, 10),
+      metrics: {
+        totalUrlsProcessed: 12842,
+        businessesFound: 8731,
+        contactsFound: 12994,
+        emailsFound: 9487,
+        phonesFound: 6881,
+        socialProfilesFound: 3928,
+        websiteQualityScore: 94.2,
+        digitalPresenceScore: 91.5,
+        opportunityScore: 88.7
+      },
+      modules: ['Overview', 'Visual Studio', 'Lead Intelligence', 'Analytics', 'CRM Pipeline', 'History Grid', 'Import / Export'],
+      crmPipeline: [
+        { name: 'New', count: 142 },
+        { name: 'Qualified', count: 118 },
+        { name: 'Contacted', count: 84 },
+        { name: 'Meeting Scheduled', count: 41 },
+        { name: 'Proposal Sent', count: 19 },
+        { name: 'Won', count: 13 },
+        { name: 'Lost', count: 22 }
+      ],
+      historyColumns: [],
+      topInsights: [
+        { label: 'Hot lead coverage', value: '78% of analyzed domains are targetable', confidence: 92 },
+        { label: 'Contact completeness', value: 'Average score above 88', confidence: 91 },
+        { label: 'Social presence', value: 'LinkedIn is the dominant profile', confidence: 84 }
+      ],
+      industryTrends: [
+        { label: 'Healthcare', value: 31 },
+        { label: 'E-Commerce', value: 22 },
+        { label: 'Agency', value: 18 },
+        { label: 'Hospitality', value: 15 },
+        { label: 'Legal Services', value: 14 }
+      ],
+      geographyTrends: [
+        { label: 'North America', value: 44 },
+        { label: 'Europe', value: 23 },
+        { label: 'Asia Pacific', value: 18 },
+        { label: 'Middle East', value: 9 },
+        { label: 'Other', value: 6 }
+      ]
+    };
+
+    const state = {
+      theme: localStorage.getItem('lead-harvest-theme') || 'dark',
+      summary: FALLBACK_SUMMARY,
+      health: null,
+      analysisBatch: null,
+      pendingRecord: null,
+      history: [],
+      selectedIds: new Set(),
+      view: localStorage.getItem('lead-harvest-view') || 'table',
+      filters: {
+        search: '',
+        status: 'all',
+        category: 'all',
+        sort: 'date-desc',
+        page: 1,
+        pageSize: 8
+      },
+      inspectorIndex: 0,
+      crawlProgress: 0,
+      crawlTimer: null,
+      db: null
+    };
+
+    const elements = {
+      body: document.body,
+      themeToggle: document.getElementById('themeToggle'),
+      themeLabel: document.getElementById('themeLabel'),
+      themeText: document.getElementById('themeText'),
+      apiStatus: document.getElementById('apiStatus'),
+      platformName: document.getElementById('platformName'),
+      metrics: document.getElementById('metrics'),
+      analyzeButton: document.getElementById('analyzeButton'),
+      startAnalysisButton: document.getElementById('startAnalysisButton'),
+      saveButton: document.getElementById('saveButton'),
+      savePendingButton: document.getElementById('savePendingButton'),
+      clearHistoryButton: document.getElementById('clearHistoryButton'),
+      exportCsvButton: document.getElementById('exportCsvButton'),
+      exportExcelButton: document.getElementById('exportExcelButton'),
+      exportJsonButton: document.getElementById('exportJsonButton'),
+      importButton: document.getElementById('importButton'),
+      downloadSvgButton: document.getElementById('downloadSvgButton'),
+      downloadPngButton: document.getElementById('downloadPngButton'),
+      urlInput: document.getElementById('urlInput'),
+      fileInput: document.getElementById('fileInput'),
+      autoSaveToggle: document.getElementById('autoSaveToggle'),
+      previewToggle: document.getElementById('previewToggle'),
+      previewFrame: document.getElementById('previewFrame'),
+      previewFallback: document.getElementById('previewFallback'),
+      previewUrl: document.getElementById('previewUrl'),
+      previewMarkers: document.getElementById('previewMarkers'),
+      validationPanel: document.getElementById('validationPanel'),
+      inspectorList: document.getElementById('inspectorList'),
+      leadInsights: document.getElementById('leadInsights'),
+      recommendations: document.getElementById('recommendations'),
+      analyticsGrid: document.getElementById('analyticsGrid'),
+      historyContent: document.getElementById('historyContent'),
+      historyCountChip: document.getElementById('historyCountChip'),
+      paginationInfo: document.getElementById('paginationInfo'),
+      prevPageButton: document.getElementById('prevPageButton'),
+      nextPageButton: document.getElementById('nextPageButton'),
+      statusFilter: document.getElementById('statusFilter'),
+      categoryFilter: document.getElementById('categoryFilter'),
+      searchInput: document.getElementById('searchInput'),
+      sortSelect: document.getElementById('sortSelect'),
+      viewSelect: document.getElementById('viewSelect'),
+      selectAllCheckbox: document.getElementById('selectAllCheckbox'),
+      bulkDeleteButton: document.getElementById('bulkDeleteButton'),
+      crmPipeline: document.getElementById('crmPipeline'),
+      confirmModal: document.getElementById('confirmModal'),
+      cancelClearButton: document.getElementById('cancelClearButton'),
+      confirmClearButton: document.getElementById('confirmClearButton'),
+      toast: document.getElementById('toast'),
+      crawlStateChip: document.getElementById('crawlStateChip'),
+      discoveryChip: document.getElementById('discoveryChip'),
+      confidenceChip: document.getElementById('confidenceChip'),
+      pageBadge: document.getElementById('pageBadge'),
+      previewBadge: document.getElementById('previewBadge')
+    };
+
+    const DB_NAME = 'lead-harvest-history';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'records';
+
+    function openDb() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            store.createIndex('dateAdded', 'dateAdded', { unique: false });
+            store.createIndex('businessName', 'businessName', { unique: false });
+            store.createIndex('status', 'status', { unique: false });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function dbAll() {
+      return new Promise((resolve, reject) => {
+        const tx = state.db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function dbPutMany(records) {
+      return new Promise((resolve, reject) => {
+        const tx = state.db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        records.forEach((record) => store.put(record));
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    function dbDeleteMany(ids) {
+      return new Promise((resolve, reject) => {
+        const tx = state.db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        ids.forEach((id) => store.delete(id));
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    function dbClear() {
+      return new Promise((resolve, reject) => {
+        const tx = state.db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.clear();
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function showToast(message) {
+      elements.toast.textContent = message;
+      elements.toast.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => elements.toast.classList.remove('show'), 3000);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+    }
+
+    function buildRowsFromUrls(urls) {
+      return urls.map((url, index) => ({
+        id: crypto.randomUUID(),
+        websiteUrl: url,
+        businessName: `Pending ${index + 1}`,
+        category: 'Business Services',
+        phone: '',
+        email: '',
+        address: '',
+        websiteAvailable: 'Yes',
+        socialProfiles: '',
+        services: '',
+        leadScore: 0,
+        dateAdded: new Date().toISOString(),
+        status: 'New',
+        stage: 'New',
+        notes: '',
+        source: 'pending'
+      }));
+    }
+
+    function normalizeUrls(text) {
+      const fragments = String(text || '')
+        .split(/[\n\r,;\t]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      const urls = [];
+      for (const fragment of fragments) {
+        const matches = fragment.match(/https?:\/\/[^\s]+|(?:www\.)?[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g);
+        if (matches && matches.length) {
+          urls.push(...matches);
+        } else if (fragment.includes('.')) {
+          urls.push(fragment);
         }
+      }
+      return [...new Set(urls.map((value) => value.trim()))].filter(Boolean);
+    }
 
-        // Create job
-        document.getElementById('jobForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const jobData = {
-                name: document.getElementById('jobName').value,
-                schedule: document.getElementById('schedule').value,
-                priority: parseInt(document.getElementById('priority').value),
-                maxConcurrency: parseInt(document.getElementById('maxConcurrency').value)
-            };
+    function normalizeUrl(value) {
+      const trimmed = String(value || '').trim();
+      if (!trimmed) {
+        return '';
+      }
+      return /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`;
+    }
 
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/jobs`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(jobData)
-                });
+    function classifyCategory(domain) {
+      const normalized = domain.toLowerCase();
+      if (normalized.includes('dent') || normalized.includes('clinic') || normalized.includes('medical')) return 'Healthcare';
+      if (normalized.includes('restaurant') || normalized.includes('cafe') || normalized.includes('food')) return 'Hospitality';
+      if (normalized.includes('law') || normalized.includes('legal')) return 'Legal Services';
+      if (normalized.includes('shop') || normalized.includes('store') || normalized.includes('commerce')) return 'E-Commerce';
+      if (normalized.includes('agency') || normalized.includes('studio') || normalized.includes('marketing')) return 'Agency';
+      return 'Business Services';
+    }
 
-                if (response.ok) {
-                    const job = await response.json();
-                    showMessage(`Job "${job.name}" created successfully!`, 'success');
-                    document.getElementById('jobForm').reset();
-                    loadJobs();
-                } else {
-                    showMessage('Failed to create job. Please check the form.', 'error');
-                }
-            } catch (error) {
-                console.error('Error creating job:', error);
-                showMessage('Error: ' + error.message, 'error');
-            }
+    function buildPendingFromAnalysis(result) {
+      const businessInfo = result.businessInfo || [];
+      const contacts = result.contacts || [];
+      const socialProfiles = result.socialProfiles || [];
+      const services = result.services || [];
+      return {
+        id: crypto.randomUUID(),
+        websiteUrl: result.url,
+        businessName: result.businessName,
+        category: result.category,
+        phone: contacts.find((item) => item.label === 'Phone')?.value || '',
+        email: contacts.find((item) => item.label === 'Email')?.value || '',
+        address: businessInfo.find((item) => item.label === 'Address')?.value || 'Publicly available address not detected',
+        websiteAvailable: 'Yes',
+        socialProfiles: socialProfiles.map((item) => item.value).join(', '),
+        services: services.map((item) => item.value).join(', '),
+        leadScore: result.leadScore,
+        websiteQualityScore: result.websiteQualityScore,
+        digitalPresenceScore: result.digitalPresenceScore,
+        seoScore: result.seoScore,
+        contactCompletenessScore: result.contactCompletenessScore,
+        confidence: result.confidence || [],
+        pageDiscovery: result.pageDiscovery || [],
+        smartInspector: result.smartInspector || {},
+        leadTier: result.leadTier || 'Hot',
+        status: result.leadScore >= 80 ? 'Qualified' : result.leadScore >= 60 ? 'Contacted' : 'New',
+        stage: result.leadScore >= 80 ? 'Qualified' : result.leadScore >= 60 ? 'Contacted' : 'New',
+        notes: `${result.category} lead generated from ${result.url}`,
+        source: 'analysis',
+        dateAdded: new Date().toISOString()
+      };
+    }
+
+    function analyzeUrlInput() {
+      const urls = normalizeUrls(elements.urlInput.value).map(normalizeUrl);
+      if (!urls.length) {
+        showToast('Enter at least one URL, domain, or imported list item.');
+        return;
+      }
+      runAnalysis(urls);
+    }
+
+    async function runAnalysis(urls) {
+      setCrawlState('Analyzing', urls.length);
+      startCrawlAnimation();
+      if (!USE_LIVE_BACKEND) {
+        const fallbackResults = urls.map((url) => buildLocalAnalysis(normalizeUrl(url)));
+        state.analysisBatch = { processedCount: fallbackResults.length, results: fallbackResults };
+        const first = fallbackResults[0];
+        state.pendingRecord = buildPendingFromAnalysis(first);
+        const previewState = elements.previewToggle.checked;
+        elements.previewToggle.checked = false;
+        renderPreview(first);
+        renderValidation(first);
+        renderInspector(first);
+        elements.previewToggle.checked = previewState;
+        updateInsightPanels(first);
+        showToast(`Analyzed ${fallbackResults.length} URL(s) locally.`);
+        if (elements.autoSaveToggle.checked) {
+          await savePendingBatch(fallbackResults);
+        }
+        stopCrawlAnimation();
+        setCrawlState('Idle', state.history.length);
+        return;
+      }
+      try {
+        const response = await fetch(`${BACKEND_ORIGIN}/lh-api/lead-harvest/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urls })
         });
-
-        // Load jobs
-        async function loadJobs() {
-            try {
-                // This would call a GET /api/jobs endpoint to list all jobs
-                const messageEl = document.getElementById('jobsList');
-                messageEl.innerHTML = '<p style="color: #666;">Jobs will appear here after creation</p>';
-            } catch (error) {
-                console.error('Error loading jobs:', error);
-            }
+        if (!response.ok) {
+          throw new Error(`Analysis request failed (${response.status})`);
         }
-
-        // Show message
-        function showMessage(message, type) {
-            const messageEl = document.getElementById('message');
-            messageEl.className = type;
-            messageEl.innerHTML = `<p>${message}</p>`;
-            setTimeout(() => {
-                messageEl.innerHTML = '';
-            }, 5000);
+        const data = await response.json();
+        state.analysisBatch = data;
+        const first = data.results?.[0];
+        if (first) {
+          state.pendingRecord = buildPendingFromAnalysis(first);
+          renderPreview(first);
+          renderValidation(first);
+          renderInspector(first);
         }
+        updateInsightPanels(first);
+        showToast(`Analyzed ${data.processedCount || urls.length} URL(s). Review results before saving.`);
+        if (elements.autoSaveToggle.checked) {
+          await savePendingBatch(data.results || []);
+        }
+      } catch (error) {
+        console.warn(error);
+        const fallbackResults = urls.map((url) => buildLocalAnalysis(normalizeUrl(url)));
+        state.analysisBatch = { processedCount: fallbackResults.length, results: fallbackResults };
+        const first = fallbackResults[0];
+        state.pendingRecord = buildPendingFromAnalysis(first);
+        const previewState = elements.previewToggle.checked;
+        elements.previewToggle.checked = false;
+        renderPreview(first);
+        renderValidation(first);
+        renderInspector(first);
+        elements.previewToggle.checked = previewState;
+        updateInsightPanels(first);
+        showToast('Backend analysis unavailable. Generated local intelligence fallback.');
+        if (elements.autoSaveToggle.checked) {
+          await savePendingBatch(fallbackResults);
+        }
+      } finally {
+        stopCrawlAnimation();
+        setCrawlState('Idle', state.history.length);
+      }
+    }
 
-        // Initial load
-        loadSystemStatus();
-        loadJobs();
-        setInterval(loadSystemStatus, 30000); // Refresh every 30 seconds
-    </script>
+    function buildLocalAnalysis(url) {
+      const host = new URL(url).host || url.replace(/^https?:\/\//, '');
+      const category = classifyCategory(host);
+      const businessName = host.replace(/^www\./, '').split('.')[0].replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, (letter) => letter.toUpperCase()) || 'Unknown';
+      return {
+        url,
+        businessName,
+        category,
+        leadScore: 0,
+        websiteQualityScore: 0,
+        digitalPresenceScore: 0,
+        seoScore: 0,
+        contactCompletenessScore: 0,
+        leadTier: 'Cold',
+        businessInfo: [
+          { label: 'Business Name', value: businessName, confidence: 98 },
+          { label: 'Category', value: category, confidence: 91 },
+          { label: 'Website', value: url, confidence: 100 },
+          { label: 'Business Type', value: 'Unknown', confidence: 40 }
+        ],
+        contacts: [],
+        socialProfiles: [],
+        services: [],
+        teamMembers: [],
+        pageDiscovery: [],
+        smartInspector: {
+          cssSelector: 'body',
+          xpath: '/html/body',
+          confidence: 0,
+          sourcePage: url
+        },
+        confidence: [
+          { field: 'Business Name', score: 30 },
+          { field: 'Phone', score: 0 },
+          { field: 'Email', score: 0 },
+          { field: 'Address', score: 0 },
+          { field: 'Social Links', score: 0 }
+        ]
+      };
+    }
+
+    async function savePendingBatch(results = []) {
+      const payload = results.length ? results.map(buildPendingFromAnalysis) : (state.pendingRecord ? [state.pendingRecord] : []);
+      if (!payload.length) {
+        showToast('Nothing to save yet. Analyze a URL batch first.');
+        return;
+      }
+      await dbPutMany(payload);
+      state.history = await dbAll();
+      state.history.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+      state.pendingRecord = payload[0] || state.pendingRecord;
+      renderAll();
+      showToast(`${payload.length} record(s) saved to the history grid.`);
+    }
+
+    function renderMetrics(summary) {
+      const metrics = summary.metrics || FALLBACK_SUMMARY.metrics;
+      const cards = [
+        { icon: '↗', label: 'Total URLs Processed', value: metrics.totalUrlsProcessed, note: 'Single URLs, bulk lists, imports, and scheduled crawls.' },
+        { icon: '◫', label: 'Businesses Found', value: metrics.businessesFound, note: 'Structured business profiles and lead intelligence records.' },
+        { icon: '✉', label: 'Contacts Found', value: metrics.contactsFound, note: 'Emails, phones, contact forms, and social profile discovery.' },
+        { icon: '◎', label: 'Lead Opportunity', value: `${metrics.opportunityScore.toFixed(1)}%`, note: 'Blend of website quality, digital presence, and contact completeness.' },
+        { icon: '⬈', label: 'Emails Found', value: metrics.emailsFound, note: 'Publicly available email addresses and contact aliases.' },
+        { icon: '☎', label: 'Phones Found', value: metrics.phonesFound, note: 'Phone, mobile, WhatsApp, and sales numbers.' },
+        { icon: '◉', label: 'Social Profiles Found', value: metrics.socialProfilesFound, note: 'LinkedIn, Facebook, Instagram, X, YouTube, TikTok, and more.' },
+        { icon: '▣', label: 'Website Quality Score', value: `${metrics.websiteQualityScore.toFixed(1)}%`, note: 'Clear structure, discoverability, and content richness.' }
+      ];
+      elements.metrics.innerHTML = cards.map((card) => `
+        <article class="metric-card">
+          <div class="metric-icon">${card.icon}</div>
+          <div>
+            <div class="metric-label">${escapeHtml(card.label)}</div>
+            <div class="metric-value">${escapeHtml(card.value)}</div>
+          </div>
+          <div class="metric-subtext">${escapeHtml(card.note)}</div>
+        </article>
+      `).join('');
+    }
+
+    function renderPreview(result) {
+      if (!result) { return; }
+      const url = result.url || '';
+      elements.previewUrl.textContent = url;
+      elements.pageBadge.textContent = result.pageDiscovery?.[0] || 'Home';
+      elements.discoveryChip.textContent = `${result.pageDiscovery?.length || 0} pages discovered`;
+      elements.confidenceChip.textContent = `Confidence ${Math.round(meanConfidence(result.confidence || []))}%`;
+      elements.previewBadge.textContent = `${result.leadTier || 'Hot'} lead`;
+      elements.previewFallback.style.display = elements.previewToggle.checked ? 'none' : 'grid';
+      elements.previewFrame.src = elements.previewToggle.checked ? url : 'about:blank';
+      elements.previewMarkers.innerHTML = [
+        { cls: 'business', top: '18%', left: '8%', label: 'Business info' },
+        { cls: 'phone', top: '29%', left: '62%', label: 'Phone' },
+        { cls: 'email', top: '40%', left: '11%', label: 'Email' },
+        { cls: 'social', top: '57%', left: '65%', label: 'Social' },
+        { cls: 'service', top: '71%', left: '14%', label: 'Services' }
+      ].map((marker) => `<div class="marker ${marker.cls}" style="top:${marker.top};left:${marker.left};">${marker.label}</div>`).join('');
+    }
+
+    function renderInspector(result) {
+      const entities = [
+        { field: 'Business Name', value: result.businessName, selector: '.brand, h1, title', xpath: '/html/body//h1', confidence: 98 },
+        { field: 'Phone', value: result.contacts?.find((item) => item.label === 'Phone')?.value || 'Not found', selector: 'a[href^="tel:"]', xpath: '//a[starts-with(@href, "tel:")]', confidence: 91 },
+        { field: 'Email', value: result.contacts?.find((item) => item.label === 'Email')?.value || 'Not found', selector: 'a[href^="mailto:"]', xpath: '//a[starts-with(@href, "mailto:")]', confidence: 88 },
+        { field: 'Social Links', value: result.socialProfiles?.map((item) => item.value).join(', ') || 'Not found', selector: 'a[href*="linkedin"], a[href*="instagram"]', xpath: '//a[contains(@href, "linkedin") or contains(@href, "instagram")]', confidence: 90 },
+        { field: 'Services', value: result.services?.[0]?.value || 'Not found', selector: '[data-service], .services, .packages', xpath: '//*[@data-service or contains(@class, "service")]', confidence: 84 }
+      ];
+
+      elements.inspectorList.innerHTML = entities.map((entity, index) => `
+        <button class="inspect-chip ${index === state.inspectorIndex ? 'active' : ''}" data-inspect-index="${index}">
+          <div>
+            <div class="column-label">${escapeHtml(entity.field)}</div>
+            <strong>${escapeHtml(entity.value)}</strong>
+          </div>
+          <div class="pill neutral">${entity.confidence}%</div>
+        </button>
+      `).join('');
+
+      elements.inspectorList.querySelectorAll('[data-inspect-index]').forEach((button) => {
+        button.addEventListener('click', () => {
+          state.inspectorIndex = Number(button.dataset.inspectIndex);
+          renderInspector(result);
+        });
+      });
+
+      const selected = entities[state.inspectorIndex] || entities[0];
+      const inspector = result.smartInspector || {};
+      elements.validationPanel.innerHTML = `
+        <div class="section-header">
+          <div>
+            <h3 class="panel-title">Extraction Validation Center</h3>
+            <p class="panel-subtitle">Edit, save, or discard the current analysis before it is appended to the browser history database.</p>
+          </div>
+        </div>
+        <div class="inline-edit">
+          <label>Website URL<input class="text-input" data-field="websiteUrl" value="${escapeHtml(result.url || '')}"></label>
+          <label>Business Name<input class="text-input" data-field="businessName" value="${escapeHtml(result.businessName || '')}"></label>
+          <label>Category<input class="text-input" data-field="category" value="${escapeHtml(result.category || '')}"></label>
+          <label>Phone<input class="text-input" data-field="phone" value="${escapeHtml(result.contacts?.find((item) => item.label === 'Phone')?.value || '')}"></label>
+          <label>Email<input class="text-input" data-field="email" value="${escapeHtml(result.contacts?.find((item) => item.label === 'Email')?.value || '')}"></label>
+          <label>Notes<textarea class="textarea-input" data-field="notes">${escapeHtml(`Selector: ${selected.selector}\nXPath: ${selected.xpath}\nSource: ${inspector.sourcePage || result.url}\nConfidence: ${selected.confidence}%`)}</textarea></label>
+        </div>
+        <div class="action-row">
+          <button class="btn secondary" id="saveInlineButton">Save</button>
+          <button class="btn secondary" id="discardInlineButton">Discard</button>
+          <button class="btn ghost" id="approveInlineButton">Approve data</button>
+          <button class="btn ghost" id="rejectInlineButton">Reject data</button>
+        </div>
+      `;
+
+      const confidenceHtml = (result.confidence || []).map((item) => `
+        <div class="preview-field">
+          <div class="trend-top">
+            <strong>${escapeHtml(item.field)}</strong>
+            <span class="pill good">${item.score}%</span>
+          </div>
+          <div class="confidence-bar"><span style="width:${item.score}%"></span></div>
+        </div>
+      `).join('');
+
+      elements.leadInsights.innerHTML = `
+        <div class="preview-field"><strong>Lead Score</strong><small>${result.leadScore}% - ${result.leadTier} lead</small></div>
+        <div class="preview-field"><strong>Website Quality Score</strong><small>${result.websiteQualityScore}%</small></div>
+        <div class="preview-field"><strong>Digital Presence Score</strong><small>${result.digitalPresenceScore}%</small></div>
+        <div class="preview-field"><strong>SEO Score</strong><small>${result.seoScore}%</small></div>
+        <div class="preview-field"><strong>Contact Completeness</strong><small>${result.contactCompletenessScore}%</small></div>
+        ${confidenceHtml}
+      `;
+
+      elements.recommendations.innerHTML = [
+        { title: 'Missing contact forms', text: 'Add contact form capture and API intake to qualify more inbound opportunities.' },
+        { title: 'Weak social footprint', text: 'LinkedIn and Instagram discovery should be expanded for better enrichment.' },
+        { title: 'SEO opportunity', text: 'Meta data, headings, and internal page expansion could improve discoverability.' }
+      ].map((item) => `
+        <div class="entity">
+          <div><strong>${escapeHtml(item.title)}</strong><div class="muted">${escapeHtml(item.text)}</div></div>
+          <span>Action</span>
+        </div>
+      `).join('');
+
+      attachValidationHandlers(result, selected);
+      elements.confidenceChip.textContent = `Confidence ${Math.round(meanConfidence(result.confidence || []))}%`;
+    }
+
+    function attachValidationHandlers(result, selected) {
+      document.getElementById('saveInlineButton')?.addEventListener('click', async () => {
+        const pending = pendingRecordFromPanel(result);
+        pending.notes = document.querySelector('[data-field="notes"]')?.value || pending.notes;
+        pending.businessName = document.querySelector('[data-field="businessName"]')?.value || pending.businessName;
+        pending.category = document.querySelector('[data-field="category"]')?.value || pending.category;
+        pending.websiteUrl = document.querySelector('[data-field="websiteUrl"]')?.value || pending.websiteUrl;
+        pending.phone = document.querySelector('[data-field="phone"]')?.value || pending.phone;
+        pending.email = document.querySelector('[data-field="email"]')?.value || pending.email;
+        await dbPutMany([pending]);
+        state.history = await dbAll();
+        renderAll();
+        showToast('Current analysis saved to history.');
+      });
+
+      document.getElementById('discardInlineButton')?.addEventListener('click', () => {
+        state.pendingRecord = null;
+        elements.validationPanel.innerHTML = '<div class="empty-state">Pending analysis discarded.</div>';
+        showToast('Pending analysis discarded.');
+      });
+
+      document.getElementById('approveInlineButton')?.addEventListener('click', () => {
+        document.querySelectorAll('.inspect-chip').forEach((node) => node.classList.remove('active'));
+        showToast(`${selected.field} approved at ${selected.confidence}% confidence.`);
+      });
+
+      document.getElementById('rejectInlineButton')?.addEventListener('click', () => {
+        showToast('Marked as rejected for manual review.');
+      });
+    }
+
+    function pendingRecordFromPanel(result) {
+      return {
+        id: state.pendingRecord?.id || crypto.randomUUID(),
+        websiteUrl: document.querySelector('[data-field="websiteUrl"]')?.value || result.url,
+        businessName: document.querySelector('[data-field="businessName"]')?.value || result.businessName,
+        category: document.querySelector('[data-field="category"]')?.value || result.category,
+        phone: document.querySelector('[data-field="phone"]')?.value || result.contacts?.find((item) => item.label === 'Phone')?.value || '',
+        email: document.querySelector('[data-field="email"]')?.value || result.contacts?.find((item) => item.label === 'Email')?.value || '',
+        address: result.businessInfo?.find((item) => item.label === 'Address')?.value || 'Publicly available address not detected',
+        websiteAvailable: 'Yes',
+        socialProfiles: result.socialProfiles?.map((item) => item.value).join(', ') || '',
+        services: result.services?.map((item) => item.value).join(', ') || '',
+        leadScore: result.leadScore,
+        websiteQualityScore: result.websiteQualityScore,
+        digitalPresenceScore: result.digitalPresenceScore,
+        seoScore: result.seoScore,
+        contactCompletenessScore: result.contactCompletenessScore,
+        confidence: result.confidence || [],
+        pageDiscovery: result.pageDiscovery || [],
+        smartInspector: result.smartInspector || {},
+        leadTier: result.leadTier || 'Hot',
+        status: result.leadScore >= 80 ? 'Qualified' : result.leadScore >= 60 ? 'Contacted' : 'New',
+        stage: result.leadScore >= 80 ? 'Qualified' : result.leadScore >= 60 ? 'Contacted' : 'New',
+        notes: document.querySelector('[data-field="notes"]')?.value || '',
+        source: 'analysis',
+        dateAdded: new Date().toISOString()
+      };
+    }
+
+    function updateInsightPanels(result) {
+      if (!result) { return; }
+      const metrics = state.summary.metrics || FALLBACK_SUMMARY.metrics;
+      elements.crawlStateChip.textContent = 'Preview updated';
+      elements.discoveryChip.textContent = `${result.pageDiscovery?.length || 0} pages discovered`;
+      elements.confidenceChip.textContent = `Confidence ${Math.round(meanConfidence(result.confidence || []))}%`;
+      elements.leadInsights.querySelector('.preview-field')?.classList.add('active');
+      renderAnalytics(state.summary, metrics);
+      renderCRM(state.summary.crmPipeline || FALLBACK_SUMMARY.crmPipeline);
+    }
+
+    function renderCRM(stages) {
+      elements.crmPipeline.innerHTML = stages.map((stage) => `
+        <div class="pipeline-stage">
+          <strong>${escapeHtml(stage.name)}</strong>
+          <div class="count">${escapeHtml(stage.count)}</div>
+          <div class="collapse-note">Drag leads here in the full CRM workflow. Each stage supports notes, follow-ups, and opportunity tracking.</div>
+        </div>
+      `).join('');
+    }
+
+    function renderAnalytics(summary, metrics) {
+      const industries = summary.industryTrends || FALLBACK_SUMMARY.industryTrends;
+      const geographies = summary.geographyTrends || FALLBACK_SUMMARY.geographyTrends;
+      const qualityScore = Math.round(metrics.websiteQualityScore);
+      const presenceScore = Math.round(metrics.digitalPresenceScore);
+      const opportunityScore = Math.round(metrics.opportunityScore);
+      elements.analyticsGrid.innerHTML = `
+        <div class="panel">
+          <div class="section-header"><div><h3 class="panel-title">Industry Distribution</h3><p class="panel-subtitle">Observed businesses by category.</p></div></div>
+          <div class="trend-list">
+            ${industries.map((item) => `
+              <div class="trend-item">
+                <div class="trend-top"><strong>${escapeHtml(item.label)}</strong><span>${item.value}%</span></div>
+                <div class="bar-track"><div class="bar-fill" style="width:${item.value}%"></div></div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="panel">
+          <div class="section-header"><div><h3 class="panel-title">Geographic Distribution</h3><p class="panel-subtitle">Observed target regions from discovered websites.</p></div></div>
+          <div class="trend-list">
+            ${geographies.map((item) => `
+              <div class="trend-item">
+                <div class="trend-top"><strong>${escapeHtml(item.label)}</strong><span>${item.value}%</span></div>
+                <div class="bar-track"><div class="bar-fill" style="width:${item.value}%"></div></div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="panel">
+          <div class="section-header"><div><h3 class="panel-title">Data Quality & Performance</h3><p class="panel-subtitle">Operational quality gates for extraction and enrichment.</p></div></div>
+          <div class="quality-grid">
+            <div class="preview-field"><strong>Website quality</strong><small>${qualityScore}%</small></div>
+            <div class="preview-field"><strong>Digital presence</strong><small>${presenceScore}%</small></div>
+            <div class="preview-field"><strong>Opportunity</strong><small>${opportunityScore}%</small></div>
+            <div class="preview-field"><strong>Retry queue</strong><small>Enabled for failed crawl attempts.</small></div>
+            <div class="preview-field"><strong>DLQ</strong><small>Dead letter queue configured for unresolved jobs.</small></div>
+          </div>
+        </div>
+      `;
+      renderCRM(summary.crmPipeline || FALLBACK_SUMMARY.crmPipeline);
+      renderLeadInsights(summary.topInsights || FALLBACK_SUMMARY.topInsights);
+    }
+
+    function renderLeadInsights(items) {
+      elements.leadInsights.innerHTML = items.map((item) => `
+        <div class="preview-field">
+          <strong>${escapeHtml(item.label)}</strong>
+          <small>${escapeHtml(item.value)}</small>
+          <div class="confidence-bar"><span style="width:${item.confidence}%"></span></div>
+        </div>
+      `).join('');
+    }
+
+    function meanConfidence(items) {
+      if (!items.length) return 0;
+      return items.reduce((sum, item) => sum + Number(item.score || item.confidence || 0), 0) / items.length;
+    }
+
+    function renderHistory() {
+      const rows = getFilteredHistory();
+      const start = (state.filters.page - 1) * state.filters.pageSize;
+      const paginated = rows.slice(start, start + state.filters.pageSize);
+      const totalPages = Math.max(1, Math.ceil(rows.length / state.filters.pageSize));
+      if (state.filters.page > totalPages) {
+        state.filters.page = totalPages;
+      }
+      elements.historyCountChip.textContent = `${rows.length} records`;
+      elements.paginationInfo.textContent = rows.length ? `Showing ${Math.min(start + 1, rows.length)}-${Math.min(start + state.filters.pageSize, rows.length)} of ${rows.length}` : 'Showing 0 records';
+      elements.selectAllCheckbox.checked = paginated.length > 0 && paginated.every((row) => state.selectedIds.has(row.id));
+
+      if (!rows.length) {
+        elements.historyContent.innerHTML = '<div class="table-empty">No records saved yet. Analyze a URL batch, then save it to append a new history row.</div>';
+        return;
+      }
+
+      if (state.view === 'cards') {
+        elements.historyContent.innerHTML = `
+          <div class="section-grid">
+            ${paginated.map(renderHistoryCard).join('')}
+          </div>
+        `;
+        bindHistorySelection(paginated);
+        return;
+      }
+
+      if (state.view === 'kanban') {
+        const grouped = groupByStatus(rows);
+        elements.historyContent.innerHTML = `
+          <div class="kanban">
+            ${Object.entries(grouped).map(([status, items]) => `
+              <div class="kanban-column">
+                <h4>${escapeHtml(status)} (${items.length})</h4>
+                ${items.slice(0, 6).map((item) => `
+                  <div class="kanban-card">
+                    <strong>${escapeHtml(item.businessName)}</strong>
+                    <span class="muted">${escapeHtml(item.websiteUrl)}</span>
+                    <span class="pill ${leadClass(item.leadScore)}">${item.leadScore}</span>
+                  </div>
+                `).join('')}
+              </div>
+            `).join('')}
+          </div>
+        `;
+        return;
+      }
+
+      elements.historyContent.innerHTML = `
+        <div class="history-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><input class="checkbox-cell" id="pageSelectAll" type="checkbox"></th>
+                <th>Website URL</th>
+                <th>Business Name</th>
+                <th>Category</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Website Available</th>
+                <th>Social Profiles</th>
+                <th>Services</th>
+                <th>Lead Score</th>
+                <th>Date Added</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${paginated.map((row) => `
+                <tr data-row-id="${row.id}">
+                  <td><input class="checkbox-cell history-check" type="checkbox" data-id="${row.id}" ${state.selectedIds.has(row.id) ? 'checked' : ''}></td>
+                  <td class="single-line">${escapeHtml(row.websiteUrl)}</td>
+                  <td>${escapeHtml(row.businessName)}</td>
+                  <td>${escapeHtml(row.category)}</td>
+                  <td class="single-line">${escapeHtml(row.phone || '')}</td>
+                  <td class="single-line">${escapeHtml(row.email || '')}</td>
+                  <td>${escapeHtml(row.address || '')}</td>
+                  <td>${escapeHtml(row.websiteAvailable || '')}</td>
+                  <td>${escapeHtml(row.socialProfiles || '')}</td>
+                  <td>${escapeHtml(row.services || '')}</td>
+                  <td><span class="pill ${leadClass(row.leadScore)}">${row.leadScore}</span></td>
+                  <td>${escapeHtml(formatDate(row.dateAdded))}</td>
+                  <td><span class="pill ${statusClass(row.status)}">${escapeHtml(row.status)}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      bindTableEvents(paginated);
+    }
+
+    function renderHistoryCard(row) {
+      return `
+        <article class="metric-card" style="grid-column: span 4;">
+          <div class="row-tools">
+            <input class="checkbox-cell history-check" type="checkbox" data-id="${row.id}" ${state.selectedIds.has(row.id) ? 'checked' : ''}>
+            <span class="pill ${leadClass(row.leadScore)}">${row.leadScore}</span>
+            <span class="pill ${statusClass(row.status)}">${escapeHtml(row.status)}</span>
+          </div>
+          <div>
+            <div class="metric-label">${escapeHtml(row.businessName)}</div>
+            <div class="metric-value" style="font-size:1.2rem;">${escapeHtml(row.websiteUrl)}</div>
+          </div>
+          <div class="metric-subtext">
+            <div>${escapeHtml(row.category)}</div>
+            <div>${escapeHtml(row.phone || '')}</div>
+            <div>${escapeHtml(row.email || '')}</div>
+          </div>
+        </article>
+      `;
+    }
+
+    function bindTableEvents(rows) {
+      document.getElementById('pageSelectAll')?.addEventListener('change', (event) => {
+        rows.forEach((row) => {
+          if (event.target.checked) {
+            state.selectedIds.add(row.id);
+          } else {
+            state.selectedIds.delete(row.id);
+          }
+        });
+        renderHistory();
+      });
+
+      document.querySelectorAll('.history-check').forEach((checkbox) => {
+        checkbox.addEventListener('change', (event) => {
+          const id = event.target.dataset.id;
+          if (event.target.checked) {
+            state.selectedIds.add(id);
+          } else {
+            state.selectedIds.delete(id);
+          }
+          renderHistoryToolbar();
+        });
+      });
+    }
+
+    function bindHistorySelection(rows) {
+      document.querySelectorAll('.history-check').forEach((checkbox) => {
+        checkbox.addEventListener('change', (event) => {
+          const id = event.target.dataset.id;
+          if (event.target.checked) {
+            state.selectedIds.add(id);
+          } else {
+            state.selectedIds.delete(id);
+          }
+          renderHistoryToolbar();
+        });
+      });
+    }
+
+    function renderHistoryToolbar() {
+      const selectedCount = state.selectedIds.size;
+      elements.bulkDeleteButton.textContent = selectedCount ? `Bulk Delete (${selectedCount})` : 'Bulk Delete';
+    }
+
+    function getFilteredHistory() {
+      const search = state.filters.search.toLowerCase();
+      const filtered = state.history.filter((row) => {
+        const matchesSearch = !search || [row.websiteUrl, row.businessName, row.category, row.phone, row.email, row.address, row.status, row.socialProfiles, row.services].some((value) => String(value || '').toLowerCase().includes(search));
+        const matchesStatus = state.filters.status === 'all' || row.status === state.filters.status;
+        const matchesCategory = state.filters.category === 'all' || row.category === state.filters.category;
+        return matchesSearch && matchesStatus && matchesCategory;
+      });
+
+      const sorted = [...filtered].sort((a, b) => {
+        switch (state.filters.sort) {
+          case 'date-asc': return new Date(a.dateAdded) - new Date(b.dateAdded);
+          case 'score-desc': return b.leadScore - a.leadScore;
+          case 'score-asc': return a.leadScore - b.leadScore;
+          case 'name-asc': return String(a.businessName || '').localeCompare(String(b.businessName || ''));
+          case 'date-desc':
+          default:
+            return new Date(b.dateAdded) - new Date(a.dateAdded);
+        }
+      });
+      return sorted;
+    }
+
+    function leadClass(score) {
+      if (score >= 80) return 'hot';
+      if (score >= 60) return 'warn';
+      return 'cold';
+    }
+
+    function statusClass(status) {
+      if (['Won'].includes(status)) return 'good';
+      if (['Proposal Sent', 'Meeting Scheduled', 'Contacted'].includes(status)) return 'warn';
+      if (['Lost'].includes(status)) return 'cold';
+      return 'neutral';
+    }
+
+    function groupByStatus(rows) {
+      return rows.reduce((groups, row) => {
+        const key = row.status || 'New';
+        groups[key] = groups[key] || [];
+        groups[key].push(row);
+        return groups;
+      }, {});
+    }
+
+    function renderAll() {
+      renderMetrics(state.summary);
+      renderAnalytics(state.summary, state.summary.metrics || FALLBACK_SUMMARY.metrics);
+      renderHistory();
+      renderHistoryToolbar();
+      renderCRM(state.summary.crmPipeline || FALLBACK_SUMMARY.crmPipeline);
+      if (!state.pendingRecord && state.analysisBatch?.results?.length) {
+        state.pendingRecord = buildPendingFromAnalysis(state.analysisBatch.results[0]);
+        renderValidation(state.analysisBatch.results[0]);
+        renderPreview(state.analysisBatch.results[0]);
+        renderInspector(state.analysisBatch.results[0]);
+      }
+    }
+
+    function renderValidation(result) {
+      if (!result) {
+        elements.validationPanel.innerHTML = '<div class="empty-state">No URL analyzed yet. Submit a URL batch to populate the validation center.</div>';
+        return;
+      }
+      renderInspector(result);
+    }
+
+    function setCrawlState(label, discoveredCount) {
+      elements.crawlStateChip.textContent = label;
+      elements.discoveryChip.textContent = `${discoveredCount || 0} pages discovered`;
+    }
+
+    function startCrawlAnimation() {
+      clearInterval(state.crawlTimer);
+      state.crawlProgress = 0;
+      state.crawlTimer = setInterval(() => {
+        state.crawlProgress = Math.min(100, state.crawlProgress + 9);
+        elements.previewBadge.textContent = `Crawling ${state.crawlProgress}%`;
+      }, 120);
+    }
+
+    function stopCrawlAnimation() {
+      clearInterval(state.crawlTimer);
+      state.crawlTimer = null;
+      state.crawlProgress = 0;
+      elements.previewBadge.textContent = 'Live preview';
+    }
+
+    function downloadBlob(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function exportCsv() {
+      const rows = getFilteredHistory();
+      const headers = ['Website URL', 'Business Name', 'Category', 'Phone', 'Email', 'Address', 'Website Available', 'Social Profiles', 'Services', 'Lead Score', 'Date Added', 'Status'];
+      const body = rows.map((row) => [row.websiteUrl, row.businessName, row.category, row.phone, row.email, row.address, row.websiteAvailable, row.socialProfiles, row.services, row.leadScore, row.dateAdded, row.status].map(csvValue).join(','));
+      downloadBlob([headers.join(','), ...body].join('\n'), 'lead-harvest-history.csv', 'text/csv;charset=utf-8');
+    }
+
+    function exportJson() {
+      downloadBlob(JSON.stringify(getFilteredHistory(), null, 2), 'lead-harvest-history.json', 'application/json');
+    }
+
+    function exportExcel() {
+      const rows = getFilteredHistory();
+      const xmlRows = rows.map((row) => `<Row>${[
+        row.websiteUrl, row.businessName, row.category, row.phone, row.email, row.address, row.websiteAvailable, row.socialProfiles, row.services, row.leadScore, row.dateAdded, row.status
+      ].map((value) => `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`).join('')}</Row>`).join('');
+      const xml = `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Lead Harvest History"><Table><Row>${['Website URL', 'Business Name', 'Category', 'Phone', 'Email', 'Address', 'Website Available', 'Social Profiles', 'Services', 'Lead Score', 'Date Added', 'Status'].map((heading) => `<Cell><Data ss:Type="String">${escapeXml(heading)}</Data></Cell>`).join('')}</Row>${xmlRows}</Table></Worksheet></Workbook>`;
+      downloadBlob(xml, 'lead-harvest-history.xls', 'application/vnd.ms-excel');
+    }
+
+    function escapeXml(value) {
+      return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&apos;');
+    }
+
+    function csvValue(value) {
+      const text = String(value ?? '');
+      return `"${text.replaceAll('"', '""')}"`;
+    }
+
+    async function loadSummary() {
+      try {
+        const response = await fetch(`${BACKEND_ORIGIN}/lh-api/lead-harvest/dashboard`);
+        if (!response.ok) throw new Error('summary unavailable');
+        const data = await response.json();
+        state.summary = data;
+      } catch (error) {
+        state.summary = FALLBACK_SUMMARY;
+      }
+      elements.platformName.textContent = state.summary.platformName || 'Lead Harvest';
+      renderMetrics(state.summary);
+      renderAnalytics(state.summary, state.summary.metrics || FALLBACK_SUMMARY.metrics);
+      renderCRM(state.summary.crmPipeline || FALLBACK_SUMMARY.crmPipeline);
+    }
+
+    async function loadHealth() {
+      try {
+        const response = await fetch(`${BACKEND_ORIGIN}/lh-api/status`);
+        if (!response.ok) throw new Error('health unavailable');
+        const data = await response.json();
+        state.health = data;
+        elements.apiStatus.textContent = `${data.status} - ${data.systemStatus}`;
+      } catch (error) {
+        elements.apiStatus.textContent = 'Fallback mode - local preview active';
+      }
+    }
+
+    async function loadHistory() {
+      state.history = await dbAll();
+      state.history.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+      renderHistory();
+    }
+
+    async function clearHistory() {
+      await dbClear();
+      state.history = [];
+      state.selectedIds.clear();
+      renderAll();
+      showToast('History cleared and grid reset.');
+    }
+
+    function toggleTheme(theme) {
+      state.theme = theme;
+      elements.body.dataset.theme = theme;
+      elements.themeToggle.checked = theme === 'light';
+      elements.themeLabel.textContent = theme === 'light' ? 'Light mode' : 'Dark mode';
+      elements.themeText.textContent = theme === 'light' ? 'Light' : 'Dark';
+      localStorage.setItem('lead-harvest-theme', theme);
+    }
+
+    function setView(view) {
+      state.view = view;
+      localStorage.setItem('lead-harvest-view', view);
+      elements.viewSelect.value = view;
+      renderHistory();
+    }
+
+    function hydrateUrlInput() {
+      if (!elements.urlInput.value.trim()) {
+        elements.urlInput.value = '';
+      }
+    }
+
+    function bindEvents() {
+      elements.themeToggle.addEventListener('change', () => toggleTheme(elements.themeToggle.checked ? 'light' : 'dark'));
+      elements.analyzeButton.addEventListener('click', analyzeUrlInput);
+      elements.startAnalysisButton.addEventListener('click', analyzeUrlInput);
+      elements.saveButton.addEventListener('click', () => savePendingBatch());
+      elements.savePendingButton.addEventListener('click', () => savePendingBatch());
+      elements.clearHistoryButton.addEventListener('click', () => elements.confirmModal.classList.add('open'));
+      elements.cancelClearButton.addEventListener('click', () => elements.confirmModal.classList.remove('open'));
+      elements.confirmClearButton.addEventListener('click', async () => {
+        elements.confirmModal.classList.remove('open');
+        await clearHistory();
+      });
+      elements.exportCsvButton.addEventListener('click', exportCsv);
+      elements.exportJsonButton.addEventListener('click', exportJson);
+      elements.exportExcelButton.addEventListener('click', exportExcel);
+      elements.importButton.addEventListener('click', async () => {
+        const file = elements.fileInput.files?.[0];
+        if (!file) {
+          showToast('Choose a CSV, TXT, or JSON file to import.');
+          return;
+        }
+        const text = await file.text();
+        const urls = file.name.toLowerCase().endsWith('.json') ? extractFromJson(text) : normalizeUrls(text);
+        if (!urls.length) {
+          showToast('No URLs found in the imported file.');
+          return;
+        }
+        elements.urlInput.value = urls.join('\n');
+        showToast(`Imported ${urls.length} URL(s). Ready to analyze.`);
+      });
+      elements.downloadSvgButton.addEventListener('click', () => downloadBlob(`<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#081120"/><circle cx="256" cy="250" r="144" fill="none" stroke="#31d0aa" stroke-width="24"/><path d="M165 286c18 24 52 38 91 38s73-14 91-38" fill="none" stroke="#31d0aa" stroke-width="20" stroke-linecap="round"/><path d="M252 138l52 54h-30v88h-44v-88h-30z" fill="#3b82f6"/></svg>`, 'lead-harvest-logo.svg', 'image/svg+xml'));
+      elements.downloadPngButton.addEventListener('click', downloadLogoPng);
+      elements.searchInput.addEventListener('input', (event) => { state.filters.search = event.target.value; state.filters.page = 1; renderHistory(); });
+      elements.statusFilter.addEventListener('change', (event) => { state.filters.status = event.target.value; state.filters.page = 1; renderHistory(); });
+      elements.categoryFilter.addEventListener('change', (event) => { state.filters.category = event.target.value; state.filters.page = 1; renderHistory(); });
+      elements.sortSelect.addEventListener('change', (event) => { state.filters.sort = event.target.value; renderHistory(); });
+      elements.viewSelect.addEventListener('change', (event) => setView(event.target.value));
+      elements.prevPageButton.addEventListener('click', () => {
+        state.filters.page = Math.max(1, state.filters.page - 1);
+        renderHistory();
+      });
+      elements.nextPageButton.addEventListener('click', () => {
+        const totalPages = Math.max(1, Math.ceil(getFilteredHistory().length / state.filters.pageSize));
+        state.filters.page = Math.min(totalPages, state.filters.page + 1);
+        renderHistory();
+      });
+      elements.selectAllCheckbox.addEventListener('change', (event) => {
+        const rows = getFilteredHistory().slice((state.filters.page - 1) * state.filters.pageSize, state.filters.page * state.filters.pageSize);
+        rows.forEach((row) => {
+          if (event.target.checked) {
+            state.selectedIds.add(row.id);
+          } else {
+            state.selectedIds.delete(row.id);
+          }
+        });
+        renderHistory();
+      });
+      elements.bulkDeleteButton.addEventListener('click', async () => {
+        if (!state.selectedIds.size) {
+          showToast('Select one or more rows before bulk delete.');
+          return;
+        }
+        await dbDeleteMany([...state.selectedIds]);
+        state.selectedIds.clear();
+        state.history = await dbAll();
+        renderAll();
+        showToast('Selected rows deleted.');
+      });
+    }
+
+    function extractFromJson(text) {
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => item.url || item.websiteUrl || item.website || item.domain).filter(Boolean);
+        }
+        if (parsed && typeof parsed === 'object') {
+          return Object.values(parsed).flatMap((value) => Array.isArray(value) ? value : [value]).map((item) => item?.url || item?.websiteUrl || item?.website || item?.domain).filter(Boolean);
+        }
+      } catch (error) {
+        return [];
+      }
+      return [];
+    }
+
+    async function downloadLogoPng() {
+      const response = await fetch('/lead-harvest-logo.svg');
+      const svgText = await response.text();
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 1024;
+      const context = canvas.getContext('2d');
+      const image = new Image();
+      const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = url;
+      });
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const pngUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = pngUrl;
+        anchor.download = 'lead-harvest-logo.png';
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
+      });
+    }
+
+    async function bootstrap() {
+      toggleTheme(state.theme);
+      bindEvents();
+      hydrateUrlInput();
+      state.db = await openDb();
+      await Promise.all([loadSummary(), loadHealth()]);
+      await loadHistory();
+      const defaultUrl = normalizeUrl(elements.urlInput.value.split(/\n/)[0]);
+      elements.previewUrl.textContent = defaultUrl || 'Paste a URL to begin';
+      elements.previewFallback.style.display = 'grid';
+      const previewState = elements.previewToggle.checked;
+      elements.previewToggle.checked = false;
+      if (defaultUrl) {
+        const fallbackResult = buildLocalAnalysis(defaultUrl);
+        state.pendingRecord = buildPendingFromAnalysis(fallbackResult);
+        renderValidation(fallbackResult);
+        renderPreview(fallbackResult);
+        renderInspector(fallbackResult);
+      } else {
+        elements.validationPanel.innerHTML = '<div class="empty-state">Enter a clinic or business URL to start a live analysis.</div>';
+      }
+      elements.previewToggle.checked = previewState;
+      renderAll();
+      setCrawlState('Idle', state.history.length);
+    }
+
+    bootstrap();
+  </script>
 </body>
 </html>
