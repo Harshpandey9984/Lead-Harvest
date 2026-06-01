@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "framework": "other",
+  "buildCommand": "",
+  "outputDirectory": "frontend/public",
+  "cleanUrls": true
+}
+
