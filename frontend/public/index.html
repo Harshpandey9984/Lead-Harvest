@@ -996,7 +996,7 @@
             <p>Every saved analysis becomes a new row. Search, sort, filter, paginate, bulk select, bulk delete, and export the spreadsheet-style history store.</p>
           </div>
           <div class="history-actions">
-            <button class="btn secondary" id="exportJsonButton">Export JSON</button>
+            <button class="btn secondary" id="exportJsonButton">Export Excel</button>
             <button class="btn secondary" id="bulkDeleteButton">Bulk Delete</button>
           </div>
         </div>
@@ -1375,10 +1375,14 @@
         businessName: `Pending ${index + 1}`,
         category: 'Business Services',
         phone: '',
+        phoneDetails: '',
         email: '',
+        emailDetails: '',
         address: '',
+        addressDetails: '',
         websiteAvailable: 'Yes',
         socialProfiles: '',
+        socialLinks: '',
         services: '',
         leadScore: 0,
         dateAdded: new Date().toISOString(),
@@ -1429,16 +1433,24 @@
       const contacts = result.contacts || [];
       const socialProfiles = result.socialProfiles || [];
       const services = result.services || [];
+      const phoneValues = contacts.filter((item) => /^Phone/i.test(item.label || '')).map((item) => item.value).filter(Boolean);
+      const emailValues = contacts.filter((item) => /^Email/i.test(item.label || '')).map((item) => item.value).filter(Boolean);
+      const socialValues = socialProfiles.map((item) => item.value).filter(Boolean);
+      const addressDetails = result.addressDetails || { street: '', city: '', region: '', postalCode: '', country: '' };
       return {
         id: crypto.randomUUID(),
         websiteUrl: result.url,
         businessName: result.businessName,
         category: result.category,
-        phone: contacts.find((item) => item.label === 'Phone')?.value || '',
-        email: contacts.find((item) => item.label === 'Email')?.value || '',
-        address: businessInfo.find((item) => item.label === 'Address')?.value || 'Publicly available address not detected',
+        phone: phoneValues[0] || '',
+        phoneDetails: phoneValues.join('\n'),
+        email: emailValues[0] || '',
+        emailDetails: emailValues.join('\n'),
+        address: result.address || businessInfo.find((item) => item.label === 'Address')?.value || 'Publicly available address not detected',
+        addressDetails: addressDetails,
         websiteAvailable: 'Yes',
-        socialProfiles: socialProfiles.map((item) => item.value).join(', '),
+        socialProfiles: socialValues.join(', '),
+        socialLinks: socialValues.join('\n'),
         services: services.map((item) => item.value).join(', '),
         leadScore: result.leadScore,
         websiteQualityScore: result.websiteQualityScore,
@@ -1635,11 +1647,15 @@
     }
 
     function renderInspector(result) {
+      const contactDetails = result.contactDetails || {};
+      const phoneValues = contactDetails.phones || (result.contacts || []).filter((item) => /^Phone/i.test(item.label || '')).map((item) => item.value).filter(Boolean);
+      const emailValues = contactDetails.emails || (result.contacts || []).filter((item) => /^Email/i.test(item.label || '')).map((item) => item.value).filter(Boolean);
+      const socialValues = contactDetails.socialProfiles || (result.socialProfiles || []).map((item) => item.value).filter(Boolean);
       const entities = [
         { field: 'Business Name', value: result.businessName, selector: '.brand, h1, title', xpath: '/html/body//h1', confidence: 98 },
-        { field: 'Phone', value: result.contacts?.find((item) => item.label === 'Phone')?.value || 'Not found', selector: 'a[href^="tel:"]', xpath: '//a[starts-with(@href, "tel:")]', confidence: 91 },
-        { field: 'Email', value: result.contacts?.find((item) => item.label === 'Email')?.value || 'Not found', selector: 'a[href^="mailto:"]', xpath: '//a[starts-with(@href, "mailto:")]', confidence: 88 },
-        { field: 'Social Links', value: result.socialProfiles?.map((item) => item.value).join(', ') || 'Not found', selector: 'a[href*="linkedin"], a[href*="instagram"]', xpath: '//a[contains(@href, "linkedin") or contains(@href, "instagram")]', confidence: 90 },
+        { field: 'Phone', value: phoneValues.join(' | ') || 'Not found', selector: 'a[href^="tel:"], [href*="tel:"], [data-phone]', xpath: '//a[starts-with(@href, "tel:")] | //span[contains(@class, "phone")]', confidence: 91 },
+        { field: 'Email', value: emailValues.join(' | ') || 'Not found', selector: 'a[href^="mailto:"], [href*="mailto:"], [data-email]', xpath: '//a[starts-with(@href, "mailto:")] | //span[contains(@class, "email")]', confidence: 88 },
+        { field: 'Social Links', value: socialValues.join(', ') || 'Not found', selector: 'a[href*="linkedin"], a[href*="instagram"], a[href*="facebook"], a[href*="twitter"], a[href*="x.com"]', xpath: '//a[contains(@href, "linkedin") or contains(@href, "instagram") or contains(@href, "facebook") or contains(@href, "twitter") or contains(@href, "x.com")]', confidence: 90 },
         { field: 'Services', value: result.services?.[0]?.value || 'Not found', selector: '[data-service], .services, .packages', xpath: '//*[@data-service or contains(@class, "service")]', confidence: 84 }
       ];
 
@@ -1673,8 +1689,17 @@
           <label>Website URL<input class="text-input" data-field="websiteUrl" value="${escapeHtml(result.url || '')}"></label>
           <label>Business Name<input class="text-input" data-field="businessName" value="${escapeHtml(result.businessName || '')}"></label>
           <label>Category<input class="text-input" data-field="category" value="${escapeHtml(result.category || '')}"></label>
-          <label>Phone<input class="text-input" data-field="phone" value="${escapeHtml(result.contacts?.find((item) => item.label === 'Phone')?.value || '')}"></label>
-          <label>Email<input class="text-input" data-field="email" value="${escapeHtml(result.contacts?.find((item) => item.label === 'Email')?.value || '')}"></label>
+          <label>Phone<input class="text-input" data-field="phone" value="${escapeHtml(phoneValues[0] || '')}"></label>
+          <label>Phone Details<textarea class="textarea-input" data-field="phoneDetails" placeholder="All extracted phone numbers">${escapeHtml(phoneValues.join('\n'))}</textarea></label>
+          <label>Email<input class="text-input" data-field="email" value="${escapeHtml(emailValues[0] || '')}"></label>
+          <label>Email Details<textarea class="textarea-input" data-field="emailDetails" placeholder="All extracted email addresses">${escapeHtml(emailValues.join('\n'))}</textarea></label>
+          <label>Address<input class="text-input" data-field="address" value="${escapeHtml((result.addressDetails?.formatted || result.address) || '')}"></label>
+          <label>Street Address<input class="text-input" data-field="addressStreet" value="${escapeHtml(result.addressDetails?.street || '')}"></label>
+          <label>City<input class="text-input" data-field="addressCity" value="${escapeHtml(result.addressDetails?.city || '')}"></label>
+          <label>State/Region<input class="text-input" data-field="addressRegion" value="${escapeHtml(result.addressDetails?.region || '')}"></label>
+          <label>Postal Code<input class="text-input" data-field="addressPostalCode" value="${escapeHtml(result.addressDetails?.postalCode || '')}"></label>
+          <label>Country<input class="text-input" data-field="addressCountry" value="${escapeHtml(result.addressDetails?.country || '')}"></label>
+          <label>Social Links<textarea class="textarea-input" data-field="socialLinks" placeholder="All extracted social URLs">${escapeHtml(socialValues.join('\n'))}</textarea></label>
           <label>Notes<textarea class="textarea-input" data-field="notes">${escapeHtml(`Selector: ${selected.selector}\nXPath: ${selected.xpath}\nSource: ${inspector.sourcePage || result.url}\nConfidence: ${selected.confidence}%`)}</textarea></label>
         </div>
         <div class="action-row">
@@ -1728,6 +1753,9 @@
         pending.websiteUrl = document.querySelector('[data-field="websiteUrl"]')?.value || pending.websiteUrl;
         pending.phone = document.querySelector('[data-field="phone"]')?.value || pending.phone;
         pending.email = document.querySelector('[data-field="email"]')?.value || pending.email;
+        pending.phoneDetails = document.querySelector('[data-field="phoneDetails"]')?.value || pending.phoneDetails || pending.phone;
+        pending.emailDetails = document.querySelector('[data-field="emailDetails"]')?.value || pending.emailDetails || pending.email;
+        pending.socialLinks = document.querySelector('[data-field="socialLinks"]')?.value || pending.socialLinks || pending.socialProfiles;
         await dbPutMany([pending]);
         state.history = await dbAll();
         renderAll();
@@ -1751,16 +1779,32 @@
     }
 
     function pendingRecordFromPanel(result) {
+      const contactDetails = result.contactDetails || {};
+      const phoneValues = contactDetails.phones || (result.contacts || []).filter((item) => /^Phone/i.test(item.label || '')).map((item) => item.value).filter(Boolean);
+      const emailValues = contactDetails.emails || (result.contacts || []).filter((item) => /^Email/i.test(item.label || '')).map((item) => item.value).filter(Boolean);
+      const socialValues = contactDetails.socialProfiles || (result.socialProfiles || []).map((item) => item.value).filter(Boolean);
+      const addressDetails = result.addressDetails || { street: '', city: '', region: '', postalCode: '', country: '' };
+      const editedAddressDetails = {
+        street: document.querySelector('[data-field="addressStreet"]')?.value || addressDetails.street || '',
+        city: document.querySelector('[data-field="addressCity"]')?.value || addressDetails.city || '',
+        region: document.querySelector('[data-field="addressRegion"]')?.value || addressDetails.region || '',
+        postalCode: document.querySelector('[data-field="addressPostalCode"]')?.value || addressDetails.postalCode || '',
+        country: document.querySelector('[data-field="addressCountry"]')?.value || addressDetails.country || '',
+      };
       return {
         id: state.pendingRecord?.id || crypto.randomUUID(),
         websiteUrl: document.querySelector('[data-field="websiteUrl"]')?.value || result.url,
         businessName: document.querySelector('[data-field="businessName"]')?.value || result.businessName,
         category: document.querySelector('[data-field="category"]')?.value || result.category,
-        phone: document.querySelector('[data-field="phone"]')?.value || result.contacts?.find((item) => item.label === 'Phone')?.value || '',
-        email: document.querySelector('[data-field="email"]')?.value || result.contacts?.find((item) => item.label === 'Email')?.value || '',
-        address: result.businessInfo?.find((item) => item.label === 'Address')?.value || 'Publicly available address not detected',
+        phone: document.querySelector('[data-field="phone"]')?.value || phoneValues[0] || '',
+        phoneDetails: document.querySelector('[data-field="phoneDetails"]')?.value || phoneValues.join('\n') || '',
+        email: document.querySelector('[data-field="email"]')?.value || emailValues[0] || '',
+        emailDetails: document.querySelector('[data-field="emailDetails"]')?.value || emailValues.join('\n') || '',
+        address: result.address || result.businessInfo?.find((item) => item.label === 'Address')?.value || 'Publicly available address not detected',
+        addressDetails: editedAddressDetails,
         websiteAvailable: 'Yes',
-        socialProfiles: result.socialProfiles?.map((item) => item.value).join(', ') || '',
+        socialProfiles: socialValues.join(', ') || '',
+        socialLinks: socialValues.join('\n') || '',
         services: result.services?.map((item) => item.value).join(', ') || '',
         leadScore: result.leadScore,
         websiteQualityScore: result.websiteQualityScore,
@@ -2106,7 +2150,7 @@
     }
 
     function downloadBlob(content, filename, type) {
-      const blob = new Blob([content], { type });
+      const blob = content instanceof Blob ? content : new Blob([content], { type });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -2122,21 +2166,27 @@
       downloadBlob([headers.join(','), ...body].join('\n'), 'lead-harvest-history.csv', 'text/csv;charset=utf-8');
     }
 
-    function exportJson() {
-      downloadBlob(JSON.stringify(getFilteredHistory(), null, 2), 'lead-harvest-history.json', 'application/json');
-    }
-
-    function exportExcel() {
+    async function exportExcel() {
       const rows = getFilteredHistory();
-      const xmlRows = rows.map((row) => `<Row>${[
-        row.websiteUrl, row.businessName, row.category, row.phone, row.email, row.address, row.websiteAvailable, row.socialProfiles, row.services, row.leadScore, row.dateAdded, row.status
-      ].map((value) => `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`).join('')}</Row>`).join('');
-      const xml = `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Lead Harvest History"><Table><Row>${['Website URL', 'Business Name', 'Category', 'Phone', 'Email', 'Address', 'Website Available', 'Social Profiles', 'Services', 'Lead Score', 'Date Added', 'Status'].map((heading) => `<Cell><Data ss:Type="String">${escapeXml(heading)}</Data></Cell>`).join('')}</Row>${xmlRows}</Table></Worksheet></Workbook>`;
-      downloadBlob(xml, 'lead-harvest-history.xls', 'application/vnd.ms-excel');
+      if (!rows.length) {
+        showToast('No history rows to export yet.');
+        return;
+      }
+      const response = await fetch(`${BACKEND_ORIGIN}/lh-api/lead-harvest/export-xlsx`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows })
+      });
+      if (!response.ok) {
+        throw new Error(`Excel export failed (${response.status})`);
+      }
+      const blob = await response.blob();
+      downloadBlob(blob, 'lead-harvest-history.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      showToast('Excel history export downloaded.');
     }
 
-    function escapeXml(value) {
-      return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&apos;');
+    function exportJson() {
+      exportExcel();
     }
 
     function csvValue(value) {
@@ -2220,7 +2270,7 @@
         await clearHistory();
       });
       elements.exportCsvButton.addEventListener('click', exportCsv);
-      elements.exportJsonButton.addEventListener('click', exportJson);
+      elements.exportJsonButton.addEventListener('click', exportExcel);
       elements.exportExcelButton.addEventListener('click', exportExcel);
       elements.importButton.addEventListener('click', async () => {
         const file = elements.fileInput.files?.[0];

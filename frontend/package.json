@@ -4,14 +4,15 @@
   "description": "Web Scraper Frontend Application",
   "main": "index.js",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "node server.js",
+    "api": "node api-server.js",
+    "build": "echo 'No build needed'",
+    "test": "echo 'No tests configured'"
   },
   "dependencies": {
     "axios": "^1.4.0",
     "cors": "^2.8.6",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
