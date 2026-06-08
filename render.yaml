@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: lead-harvest
+    env: node
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install
+    startCommand: node api-server.js
+    envVars:
+      - key: NODE_ENV
+        value: production

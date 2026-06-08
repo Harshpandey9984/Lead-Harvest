@@ -1158,7 +1158,9 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const BACKEND_ORIGIN = 'http://localhost:3100';
+    const BACKEND_ORIGIN = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:3100'
+      : window.location.origin;
     const USE_LIVE_BACKEND = true;
     const FALLBACK_SUMMARY = {
       platformName: 'Lead Harvest',

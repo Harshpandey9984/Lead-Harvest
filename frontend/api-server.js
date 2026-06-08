@@ -3,9 +3,10 @@ const ExcelJS = require('exceljs');
 const express = require('express');
 const cors = require('cors');
 const https = require('https');
+const path = require('path');
 
 const app = express();
-const PORT = 3100;
+const PORT = process.env.PORT || 3100;
 
 const SOCIAL_PATTERNS = [
   { label: 'LinkedIn', pattern: /linkedin\.com/i },
@@ -1321,6 +1322,13 @@ app.post('/lh-api/lead-harvest/analyze', async (req, res) => {
     results.push(await analyzeUrl(url));
   }
   res.json({ processedCount: results.length, results });
+});
+
+// Serve static frontend files from 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
