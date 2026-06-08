@@ -1,0 +1,9 @@
+{
+  "name": "lead-harvest-root",
+  "version": "1.0.0",
+  "description": "Lead Harvest root package.json for auto-deployment support",
+  "scripts": {
+    "build": "cd frontend && npm install",
+    "start": "cd frontend && node api-server.js"
+  }
+}

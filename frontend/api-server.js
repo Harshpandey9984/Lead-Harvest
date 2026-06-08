@@ -1328,7 +1328,15 @@ app.post('/lh-api/lead-harvest/analyze', async (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const filePath = path.join(__dirname, 'public', 'index.html');
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('Error sending index.html:', err);
+      if (!res.headersSent) {
+        res.status(500).send('Error loading page: ' + err.message);
+      }
+    }
+  });
 });
 
 app.listen(PORT, () => {
