@@ -15,11 +15,22 @@ function normalizeUrl(value) {
 
 function classifyCategory(domain) {
   const normalized = domain.toLowerCase();
-  if (normalized.includes('dent') || normalized.includes('clinic') || normalized.includes('medical')) return 'Healthcare';
-  if (normalized.includes('restaurant') || normalized.includes('cafe') || normalized.includes('food')) return 'Hospitality';
-  if (normalized.includes('law') || normalized.includes('legal')) return 'Legal Services';
-  if (normalized.includes('shop') || normalized.includes('store') || normalized.includes('commerce')) return 'E-Commerce';
-  if (normalized.includes('agency') || normalized.includes('studio') || normalized.includes('marketing')) return 'Agency';
+  
+  if (/\b(restaurant|cafe|coffee|coffeebar|cafeteria|food|bakery|bistro|catering|pub|bar|brewery|kitchen|pizza|burger|grill|steakhouse|diner|eatery|lassi|juicebar|icecream|hotel|resort|motel|hostel|booking|stay|accommodation|travel|tour|tourism|guide|flight|cruise|vacation|trip)s?\b/i.test(normalized)) {
+    return 'Hospitality';
+  }
+  if (/\b(dentist|dental|orthodontist|clinic|medical|health|healthcare|hospital|wellness|therapy|physio|chiropractor|doctor|pediatric|surgeon|physician|nursing|pharmacy|chemist|medicine)s?\b/i.test(normalized)) {
+    return 'Healthcare';
+  }
+  if (/\b(law|legal|attorney|firm|solicitor|barrister|advocate|lawyer|notary|court|litigation)s?\b/i.test(normalized)) {
+    return 'Legal Services';
+  }
+  if (/\b(shop|store|commerce|ecommerce|retail|marketplace|boutique|sales|grocer|supermarket|brand|shopping|deal|discount|wholesale)s?\b/i.test(normalized)) {
+    return 'E-Commerce';
+  }
+  if (/\b(agency|studio|marketing|advertising|pr|seo|media|design|consulting|consultant|advisor|consultancy|public relations|creative)s?\b/i.test(normalized)) {
+    return 'Agency';
+  }
   return 'Business Services';
 }
 

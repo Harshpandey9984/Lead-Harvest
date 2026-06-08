@@ -2,6 +2,7 @@ const axios = require('axios');
 const ExcelJS = require('exceljs');
 const express = require('express');
 const cors = require('cors');
+const https = require('https');
 
 const app = express();
 const PORT = 3100;
@@ -81,6 +82,7 @@ function stripTags(html = '') {
       .replace(/<style[\s\S]*?<\/style>/gi, ' ')
       .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
       .replace(/<svg[\s\S]*?<\/svg>/gi, ' ')
+      .replace(/<\/(?:div|p|li|ul|ol|h1|h2|h3|h4|h5|h6|tr|td|footer|header|address|section|article)>/gi, '. ')
       .replace(/<[^>]+>/g, ' ')
   )
     .replace(/\s+/g, ' ')
@@ -114,12 +116,72 @@ function canonicalUrl(rawUrl) {
 
 function classifyCategory(text) {
   const normalized = String(text || '').toLowerCase();
-  if (/(clinic|medical|health|dental|dentist|hospital|wellness|therapy|care)/.test(normalized)) return 'Healthcare';
-  if (/(restaurant|cafe|food|bar|bakery|pizza)/.test(normalized)) return 'Hospitality';
-  if (/(law|legal|attorney|firm|solicitor)/.test(normalized)) return 'Legal Services';
-  if (/(shop|store|commerce|ecommerce|retail|marketplace)/.test(normalized)) return 'E-Commerce';
-  if (/(agency|studio|marketing|brand|media|design)/.test(normalized)) return 'Agency';
-  if (/(spa|salon|beauty|fitness|gym)/.test(normalized)) return 'Personal Services';
+  
+  // 1. Hospitality (Cafes, Restaurants, Food, Hotels, etc.)
+  if (/\b(restaurant|cafe|coffee|coffeebar|cafeteria|food|bakery|bistro|catering|pub|bar|brewery|kitchen|pizza|burger|grill|steakhouse|diner|eatery|lassi|juicebar|icecream|hotel|resort|motel|hostel|booking|stay|accommodation|travel|tour|tourism|guide|flight|cruise|vacation|trip)s?\b/i.test(normalized)) {
+    return 'Hospitality';
+  }
+
+  // 2. Healthcare & Medical (Dentist, Clinic, Doctor, etc.)
+  if (/\b(dentist|dental|orthodontist|clinic|medical|health|healthcare|hospital|wellness|therapy|physio|chiropractor|doctor|pediatric|surgeon|physician|nursing|pharmacy|chemist|medicine)s?\b/i.test(normalized)) {
+    return 'Healthcare';
+  }
+
+  // 3. Legal Services
+  if (/\b(law|legal|attorney|firm|solicitor|barrister|advocate|lawyer|notary|court|litigation)s?\b/i.test(normalized)) {
+    return 'Legal Services';
+  }
+
+  // 4. E-Commerce & Retail
+  if (/\b(shop|store|commerce|ecommerce|retail|marketplace|boutique|sales|grocer|supermarket|brand|shopping|deal|discount|wholesale)s?\b/i.test(normalized)) {
+    return 'E-Commerce';
+  }
+
+  // 5. Agency, Consulting & Marketing
+  if (/\b(agency|studio|marketing|advertising|pr|seo|media|design|consulting|consultant|advisor|consultancy|public relations|creative)s?\b/i.test(normalized)) {
+    return 'Agency';
+  }
+
+  // 6. Personal Services
+  if (/\b(spa|salon|beauty|hair|nails|fitness|gym|yoga|personal trainer|massage|barber|barbershop|cosmetic|skincare)s?\b/i.test(normalized)) {
+    return 'Personal Services';
+  }
+
+  // 7. Technology & Software
+  if (/\b(software|app|technology|tech|saas|developer|digital|it services|cloud|cybersecurity|networking|hardware|computer|programming|hosting|domain|webdev)s?\b/i.test(normalized)) {
+    return 'Technology & Software';
+  }
+
+  // 8. Real Estate
+  if (/\b(real estate|realtor|property|properties|apartment|housing|rentals|mortgage|broker|estate agent|landlord|leasing)s?\b/i.test(normalized)) {
+    return 'Real Estate';
+  }
+
+  // 9. Education & Training
+  if (/\b(school|university|college|academy|training|education|tutor|course|learning|student|class|lessons|coaching|tuition)s?\b/i.test(normalized)) {
+    return 'Education & Training';
+  }
+
+  // 10. Finance & Insurance
+  if (/\b(finance|financial|bank|banking|insurance|accounting|accountant|adviser|investment|wealth|tax|audit|bookkeeping|cpa)s?\b/i.test(normalized)) {
+    return 'Finance & Insurance';
+  }
+
+  // 11. Construction & Contracting
+  if (/\b(construction|builder|contractor|plumbing|plumber|electrician|roofing|hvac|renovation|carpenter|painter|engineering|architect|handyman|masonry)s?\b/i.test(normalized)) {
+    return 'Construction & Contracting';
+  }
+
+  // 12. Automotive
+  if (/\b(auto|car|vehicle|dealer|repair|garage|automotive|mechanic|tires|dealership|leasing|rental|tow|towing|body shop)s?\b/i.test(normalized)) {
+    return 'Automotive';
+  }
+
+  // 13. Non-Profit & Community
+  if (/\b(charity|non-profit|foundation|ngo|association|community|church|religious|donation|volunteer|worship|temple|mosque|synagogue)s?\b/i.test(normalized)) {
+    return 'Non-Profit & Community';
+  }
+
   return 'Business Services';
 }
 
@@ -226,44 +288,193 @@ function stringifyAddressValue(value) {
   return String(value).trim();
 }
 
+function parseAddressString(addressStr) {
+  const clean = String(addressStr || '').trim();
+  if (!clean) {
+    return { street: '', city: '', region: '', postalCode: '', country: '' };
+  }
+
+  const parts = clean.split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 1) {
+    return { street: parts[0], city: '', region: '', postalCode: '', country: '' };
+  }
+
+  let country = '';
+  let region = '';
+  let postalCode = '';
+  let city = '';
+  let street = '';
+
+  // 1. Try to find a postal code in any of the parts
+  const postalCodePattern = /\b\d{5}(?:-\d{4})?\b|\b\d{6}\b|\b[A-Z]\d[A-Z]\s*\d[A-Z]\d\b|\b[A-Z]{1,2}\d[A-Z0-9]?\s*\d[A-Z]{2}\b/i;
+  for (let i = 0; i < parts.length; i += 1) {
+    const match = parts[i].match(postalCodePattern);
+    if (match) {
+      postalCode = match[0];
+      parts[i] = parts[i].replace(postalCode, '').trim();
+      break;
+    }
+  }
+
+  const remainingParts = parts.map((p) => p.trim()).filter(Boolean);
+
+  const countries = ['india', 'usa', 'united states', 'uk', 'united kingdom', 'canada', 'australia', 'germany', 'france', 'italy', 'spain'];
+  const indianStates = ['andhra pradesh', 'arunachal pradesh', 'assam', 'bihar', 'chhattisgarh', 'goa', 'gujarat', 'haryana', 'himachal pradesh', 'jharkhand', 'karnataka', 'kerala', 'madhya pradesh', 'maharashtra', 'manipur', 'meghalaya', 'mizoram', 'nagaland', 'odisha', 'punjab', 'rajasthan', 'sikkim', 'tamil nadu', 'telangana', 'tripura', 'uttar pradesh', 'uttarakhand', 'west bengal', 'delhi'];
+  const usStates = ['al', 'ak', 'az', 'ar', 'ca', 'co', 'ct', 'de', 'fl', 'ga', 'hi', 'id', 'il', 'in', 'ia', 'ks', 'ky', 'la', 'me', 'md', 'ma', 'mi', 'mn', 'ms', 'mo', 'mt', 'ne', 'nv', 'nh', 'nj', 'nm', 'ny', 'nc', 'nd', 'oh', 'ok', 'or', 'pa', 'ri', 'sc', 'sd', 'tn', 'tx', 'ut', 'vt', 'va', 'wa', 'wv', 'wi', 'wy'];
+
+  if (remainingParts.length > 0) {
+    const lastPartLower = remainingParts[remainingParts.length - 1].toLowerCase();
+    if (countries.includes(lastPartLower) || lastPartLower.length === 2 && lastPartLower === 'in') {
+      country = remainingParts.pop();
+    }
+  }
+
+  if (remainingParts.length > 0) {
+    const lastPartLower = remainingParts[remainingParts.length - 1].toLowerCase();
+    const isIndianState = indianStates.includes(lastPartLower);
+    const isUsState = usStates.includes(lastPartLower) || lastPartLower.length === 2 && /^[a-z]{2}$/.test(lastPartLower);
+    
+    if (isIndianState || isUsState) {
+      region = remainingParts.pop();
+      if (isIndianState && !country) {
+        country = 'India';
+      }
+    }
+  }
+
+  if (remainingParts.length >= 2) {
+    city = remainingParts.pop();
+  }
+
+  street = remainingParts.join(', ');
+
+  if (!street && remainingParts.length === 1) {
+    street = remainingParts[0];
+  }
+
+  return { street, city, region, postalCode, country };
+}
+
 function normalizeAddressParts(value) {
   const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  const street = stringifyAddressValue(source.streetAddress || source.street || source.addressLine1 || source.addressLine || '');
-  const city = stringifyAddressValue(source.addressLocality || source.city || source.locality || '');
-  const region = stringifyAddressValue(source.addressRegion || source.state || source.region || '');
-  const postalCode = stringifyAddressValue(source.postalCode || source.zip || source.postal || '');
-  const country = stringifyAddressValue(source.addressCountry || source.country || '');
+  let street = stringifyAddressValue(source.streetAddress || source.street || source.addressLine1 || source.addressLine || '');
+  let city = stringifyAddressValue(source.addressLocality || source.city || source.locality || '');
+  let region = stringifyAddressValue(source.addressRegion || source.state || source.region || '');
+  let postalCode = stringifyAddressValue(source.postalCode || source.zip || source.postal || '');
+  let country = stringifyAddressValue(source.addressCountry || source.country || '');
   const name = stringifyAddressValue(source.name || source.label || '');
+
+  // Parse if it is a single concatenated address string
+  if (street && !city && !region && !postalCode && !country) {
+    const parsed = parseAddressString(street);
+    street = parsed.street;
+    city = parsed.city;
+    region = parsed.region;
+    postalCode = parsed.postalCode;
+    country = parsed.country;
+  }
+
   const formatted = [name, street, city, region, postalCode, country].filter(Boolean).join(', ');
   return { formatted, street, city, region, postalCode, country };
+}
+
+function looksLikeAddress(text) {
+  const clean = String(text || '').trim();
+  if (clean.length < 12 || clean.length > 250) return false;
+  
+  // Ignore boilerplate
+  if (/(copyright|all rights reserved|powered by|designed by|privacy policy|terms of service|use of cookies|cookie settings)/i.test(clean)) {
+    return false;
+  }
+  
+  const hasDigit = /\d/.test(clean);
+  const hasStreetSuffix = /\b(street|st|road|rd|avenue|ave|drive|dr|lane|ln|boulevard|blvd|way|court|ct|circle|cir|parkway|pkwy|plaza|plz|highway|hwy|square|sq|terrace|ter|box|po box)\b/i.test(clean);
+  const hasComma = clean.includes(',');
+
+  // If it has digits and a street suffix, it's very likely an address
+  if (hasDigit && hasStreetSuffix) return true;
+  
+  // If it doesn't have digits, it must have a street suffix and a comma (like "Infantry Road, Ballari")
+  if (hasStreetSuffix && hasComma) return true;
+
+  // If it has digits and looks like a PO box or structured address
+  if (hasDigit && /\b(box|po box|suite|ste|bldg|building|floor|fl|zip|postal)\b/i.test(clean)) return true;
+
+  return false;
+}
+
+function extractAddressFromHtml(html) {
+  if (!html) return '';
+  
+  // Try to find <address> tags
+  const addressTagMatches = html.match(/<address\b[^>]*>([\s\S]*?)<\/address>/gi);
+  if (addressTagMatches) {
+    for (const match of addressTagMatches) {
+      const text = stripTags(match);
+      if (looksLikeAddress(text)) {
+        return text;
+      }
+    }
+  }
+
+  // Try to find elements with class/id/itemprop containing "address"
+  const elementMatches = html.match(/<(?:div|span|p|section|li|td)\b[^>]*(?:class|id|itemprop)=["'](?:[^"'>]*\b)?address\b(?:[^"'>]*\b)?["'][^>]*>([\s\S]*?)<\/\1>/gi);
+  if (elementMatches) {
+    for (const match of elementMatches) {
+      const text = stripTags(match);
+      if (looksLikeAddress(text)) {
+        return text;
+      }
+    }
+  }
+
+  // Try class/id/itemprop containing "street-address" or "streetAddress"
+  const streetMatches = html.match(/<(?:div|span|p|section)\b[^>]*(?:class|id|itemprop)=["'](?:[^"'>]*\b)?(?:street-?address|streetAddress)\b(?:[^"'>]*\b)?["'][^>]*>([\s\S]*?)<\/\1>/gi);
+  if (streetMatches) {
+    for (const match of streetMatches) {
+      const text = stripTags(match);
+      if (looksLikeAddress(text)) {
+        return text;
+      }
+    }
+  }
+
+  return '';
 }
 
 function extractAddressFromText(text) {
   const compact = String(text || '').replace(/\s+/g, ' ').trim();
   if (!compact) return '';
 
-  // Look for labeled address patterns with common address keywords
-  const labelled = compact.match(/(?:business address|mailing address|office address|office|headquarters|hq|headquarters|located at|address|mailing|main office|corporate address)\s*(?:for|of|:|-|is)?\s*([0-9][A-Za-z0-9.,&'()\-\/\s]{15,240}?)(?=\s(?:phone|tel|email|fax|contact|hours|social|website|p\.o\.|po box)\b|$|<|&lt;)/i);
+  // Look for labeled address patterns with common address keywords (no leading digit requirement)
+  const labelled = compact.match(/(?:business address|mailing address|office address|office|headquarters|hq|located at|address|mailing|main office|corporate address)\s*(?:for|of|:|-|is)?\s*([A-Za-z0-9.,&'()\-\/s]{10,200}?)(?=\s(?:phone|tel|email|fax|contact|hours|social|website|p\.o\.|po box)\b|$|<|&lt;)/i);
   if (labelled?.[1]) {
     const extracted = labelled[1].trim().replace(/\s+/g, ' ');
-    // Validate it looks like an address (has numbers for street/zip and common address words)
-    if (/(street|ave|road|drive|lane|blvd|court|circle|way|place|parkway|boulevard|avenue|rd|dr|st|ct|ln|pl|pk|ave|wy|plaza|terrace|trace|track|trail|turnpike|alley|anex|annex|arcade|area|armory|beltway|bend|bluff|board|boat|bottom|bow|bowl|branch|breakwater|bridge|bridle|brook|bunch|burden|burg|bypass|camp|canal|canyon|cape|causeway|cave|center|centerline|central|chain|chalet|challenge|channel|chapel|charles|chase|chateau|chatham|chestnut|chevron|chime|chipley|choice|choppee|chord|chotchkie|chosen|chow|chowchilla|chuckatuck|chuckwagon|chukar|chula|church|churchwell|churn|churning|chuska|chuska|cider|cigar|cinch|circle|circuit|circusville|circumvent|citadel|citrus|city|cityview|clack|clairton|clam|clamato|clamp|clara|clarabel|clarence|clarion|clark|clarksville|claro|clasp|class|classique|clatskanie|claude|claudet|claudian|claudine|claudius|claunch|claustrophobia|clave|claybank|clayfield|clayton|claytonia|claytonville|clean|cleaner|cleaners|cleaning|clearbrook|clearcreek|cleared|clearing|clearmont|clearview|cleat|cleate|cleating|cleats|cleburne|cleghorn|clehills|clemens|clement|clemensville|clemme|clemmons|clemmy|clemson|clemons|clench|clendennin|clends|clendye|clendyke|cleodal|cleona|cleonice|cleopatra|cleopatras|cleophis|cleora|cleordan|cleoretta|cleotha|cleotilde|cleotis|cleon|cleonia|cleonide|cleonice|cleonie|cleonides|cleonids|cleonies|cleonis|cleonnae|cleop|cleopas|cleopatra|cleopatras|cleopatrian|cleopatra's|cleope|cleopedia|cleopes|cleophan|cleophanide|cleophanides|cleophanides|cleophanids|cleophanies|cleophas|cleophase|cleophasite|cleophasites|cleophile|cleophinam|cleophinan|cleophinane|cleophinaneis|cleophinanes|cleophinans|cleophinanses|cleophinal|cleophinane|cleophinaleis|cleophinalense|cleophinalenses|cleophinales|cleophine|cleophineis|cleophines|cleophining|cleophininus|cleophinis|cleophinism|cleophinisms|cleophinius|cleophinius|cleophiius|cleophius|cleophius|cleophora|cleophoras|cleophore|cleophores|cleophori|cleophories|cleophoria|cleophorian|cleophorianise|cleophorianises|cleophorians|cleophorianue|cleophorids|cleophoric|cleophoridae|cleophorous|cleophorously|cleophorus|cleophraide|cleophraides|cleophraids|cleophraidse|cleophrame|cleophrames|cleophranae|cleophr|cleophres|cleophric|cleophrida|cleophridade|cleophridas|cleophrids|cleophrideae|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrid|cleophrids|cleophridy|cleophridy|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophrids|cleophridse|cleophridy|cleophridy|cleophridy|cleophridy|cleophridy|cleophridy|cleophries|cleophry|cleophs|cleophus|cleopsis|cleoptis|cleoptra|cleoptra|cleoptradeidae|cleoptradeae|cleoptradeae|cleoptridae|cleoptridae|cleoptridae|cleoptridae|cleoptridae|cleoptridae|cleoptridae|cleoptridae|cleoptradeae|cleoptradae|cleoptrade|cleoptraede|cleoptraede|cleoptraede|cleoptradi|cleoptradi|cleoptradi|cleoptradidae|cleoptradidae|cleoptradidae|cleoptradidae|cleoptradidae|cleoptradidae|cleoptradidae|cleoptradidae|cleoptradie|cleoptradies|cleoptradies|cleoptradies|cleoptradies|cleoptradies|cleoptradies|cleoptradies|cleoptradies|cleoptradis|cleoptradis|cleoptradis|cleoptradis|cleoptradis|cleoptradis|cleoptradis|cleoptrady|cleoptrady|cleoptrady|cleoptrady|cleoptrady|cleoptrady|cleoptrady|cleoptrady|cleoptrady|cleoptraidae|cleoptraidae|cleoptraidae|cleoptraidae|cleoptraidae|cleoptraidae|cleoptraidae|cleoptraidae|cleoptrae|cleoptrae|cleoptrae|cleoptrae|cleoptrae|cleoptrae|cleoptraes|cleoptraes|cleoptraes|cleoptraes|cleoptraes|cleoptraes|cleoptraes|cleoptraes|cleoptraes|cleoptraes|cleoptraes|cleoptrai|cleoptrai|cleoptrai|cleoptraidae|cleoptrain|cleoptrainaia|cleoptrainaia|cleoptrainae|cleoptrainae|cleoptrainae|cleoptrainae|cleoptrainae|cleoptrainaeae|cleoptrainaei|cleoptrainai|cleoptrainai|cleoptrainai|cleoptrainai|cleoptrainai|cleoptrainai|cleoptrainai|cleoptrainai|cleoptrains|cleoptrains|cleoptrains|cleoptrains|cleoptrain|cleoptrainae|cleoptraina|cleoptraina|cleoptraina|cleoptraina|cleoptraina|cleoptraina|cleoptraina|cleoptraina|cleoptraina|cleoptrainae|cleoptrainae|cleoptrainaia|cleoptrainae|cleoptrainaiae|cleoptrainae|cleoptrain|cleoptrainae|cleoptrain|cleoptrainaei|cleoptrainaei|cleoptrainaei|cleoptrain|cleoptrainae|cleoptrain|cleoptrainaei|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleoptrain|cleyptrain and many other words that I don't need to include in the address check|
-   |cleoptrain|street|ave|road|drive|lane|blvd|boulevard|avenue|rd|dr|st|ct|ln|pl|pk) as an actual address and not random text.
-  | Return false if it's just random words without address-like structure.
+    if (looksLikeAddress(extracted)) {
+      return extracted;
+    }
+  }
 
-  // Use a shorter, more realistic address pattern
-  const realAddressPattern = /\b(\d+)\s+([A-Za-z\s]+?(?:street|avenue|road|drive|lane|boulevard|place|court|circle|way|court|park|plaza|parkway|rd|ave|st|blvd|ct|ln|dr|pl|pk|cir|pky|trl|ter|trce|trl|wy))\s*(?:,?\s+([A-Za-z\s]+?))(?:,?\s+([A-Z]{2}))(?:,?\s+(\d{5}(?:-\d{4})?))?/i;
+  // Pattern A: Standard address starting with a number (e.g. "123 Main St, London, UK")
+  const standardPattern = /\b\d{1,6}\s+[A-Za-z0-9\s.,'()-]{2,50}\s+(?:street|st|road|rd|avenue|ave|drive|dr|lane|ln|boulevard|blvd|way|court|ct|circle|cir|parkway|pkwy|plaza|plz|highway|hwy|square|sq|terrace|ter)\b(?:\s*[,.]?\s*[A-Za-z0-9\s.,'()-]{2,40}){0,4}/i;
   
-  const match = compact.match(realAddressPattern);
-  if (match) {
-    const [fullMatch, street, streetName, city, state, zip] = match;
-    return fullMatch.trim().replace(/\s+/g, ' ');
+  // Pattern B: Address without a leading number, but with commas and a street suffix (e.g. "Opp OutPost Police Station, Infantry Road, Ballari, Karnataka")
+  const landmarkPattern = /\b[A-Za-z0-9\s#\-’'()&\/,]{3,80}\s+(?:street|st|road|rd|avenue|ave|drive|dr|lane|ln|boulevard|blvd|way|court|ct|circle|cir|parkway|pkwy|plaza|plz|highway|hwy|square|sq|terrace|ter)\b(?:\s*[,.]\s*(?![^,.]*\b(?:home|about|inquiry|email|phone|contact|menu|privacy|terms|get|call)\b)[A-Za-z0-9\s#\-’'()&\/]{2,30}){1,5}/i;
+
+  const matchA = compact.match(standardPattern);
+  if (matchA && looksLikeAddress(matchA[0])) {
+    return matchA[0].trim().replace(/\s+/g, ' ');
+  }
+
+  const matchB = compact.match(landmarkPattern);
+  if (matchB && looksLikeAddress(matchB[0])) {
+    return matchB[0].trim().replace(/\s+/g, ' ');
   }
 
   return '';
 }
 
-function extractAddressFromJsonLd(jsonLdObjects, text) {
+function extractAddressDetails(jsonLdObjects, html, text) {
   const candidates = [];
 
   const queue = [...jsonLdObjects];
@@ -292,6 +503,11 @@ function extractAddressFromJsonLd(jsonLdObjects, text) {
     if (normalized.street && /\d/.test(normalized.street)) {
       return normalized;
     }
+  }
+
+  const fromHtml = extractAddressFromHtml(html);
+  if (fromHtml) {
+    return normalizeAddressParts({ streetAddress: fromHtml });
   }
 
   const fallback = extractAddressFromText(text);
@@ -388,9 +604,17 @@ function extractContactChannels(html, baseUrl) {
     }
   }
 
+  // Filter out false positive phone numbers (e.g. dates, postal codes, years, or too short/long digits)
+  const cleanedPhones = [...phones].filter((phone) => {
+    const digitsOnly = phone.replace(/[^0-9]/g, '');
+    if (digitsOnly.length < 7 || digitsOnly.length > 15) return false;
+    if (/^\d{4}[-./]\d{2}[-./]\d{2}$/.test(phone) || /^\d{2}[-./]\d{2}[-./]\d{4}$/.test(phone)) return false;
+    return true;
+  });
+
   return {
     emails: [...emails],
-    phones: [...phones],
+    phones: cleanedPhones,
     socialProfiles: [...socialProfiles],
     contactForms: [...contactForms],
   };
@@ -410,8 +634,8 @@ function extractBusinessSignals(page) {
     page.title ||
     page.h1 ||
     titleCase(host.split('.')[0]);
-  const addressDetails = extractAddressFromJsonLd(jsonLdObjects, text);
-  const address = addressDetails.formatted || meta['og:description'] || meta.description || '';
+  const addressDetails = extractAddressDetails(jsonLdObjects, page.html, text);
+  const address = addressDetails.formatted || '';
   const businessType =
     jsonLdObjects.find((item) => item['@type'])?.['@type'] ||
     classifyCategory(`${page.title} ${text}`);
@@ -546,7 +770,7 @@ function candidateUrls(baseUrl, html) {
       if (url.host !== base.host) continue;
       const text = stripTags(anchorMatch[2]);
       const score = [text, resolved].join(' ');
-      if (!seen.has(resolved) && /contact|about|service|team|doctor|location|locations|insurance|billing/i.test(score)) {
+      if (!seen.has(resolved) && /contact|about|service|team|doctor|location|locations|insurance|billing|find-us|reach-us|get-in-touch|appointment|book-online|staff|careers|faq/i.test(score)) {
         seen.add(resolved);
         links.push({ url: resolved, score: score.toLowerCase().includes('contact') ? 3 : 1 });
       }
@@ -563,9 +787,13 @@ async function fetchPage(url) {
     maxRedirects: 5,
     responseType: 'text',
     validateStatus: () => true,
+    httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     headers: {
-      'User-Agent': 'LeadHarvestBot/1.0 (+local analysis)',
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
     },
   });
 
@@ -869,7 +1097,16 @@ async function buildExcelWorkbook(rows) {
   workbook.created = new Date();
 
   const normalizedRows = (Array.isArray(rows) ? rows : []).map((row) => {
-    const addrDetails = (row.addressDetails && typeof row.addressDetails === 'object') ? row.addressDetails : { formatted: row.address || '', street: '', city: '', region: '', postalCode: '', country: '' };
+    let addrDetails = (row.addressDetails && typeof row.addressDetails === 'object') ? row.addressDetails : null;
+    const fullAddress = row.address || (addrDetails && addrDetails.formatted) || '';
+    
+    // Dynamically parse address if components are missing
+    if (fullAddress && (!addrDetails || (!addrDetails.city && !addrDetails.region && !addrDetails.country))) {
+      addrDetails = parseAddressString(fullAddress);
+    } else if (!addrDetails) {
+      addrDetails = { formatted: '', street: '', city: '', region: '', postalCode: '', country: '' };
+    }
+
     return {
       websiteUrl: row.websiteUrl || '',
       businessName: row.businessName || '',
@@ -878,12 +1115,12 @@ async function buildExcelWorkbook(rows) {
       phoneDetails: row.phoneDetails || row.phone || '',
       email: row.email || '',
       emailDetails: row.emailDetails || row.email || '',
-      address: row.address || addrDetails.formatted || '',
-      addressStreet: addrDetails.street || '',
-      addressCity: addrDetails.city || '',
-      addressRegion: addrDetails.region || '',
-      addressPostalCode: addrDetails.postalCode || '',
-      addressCountry: addrDetails.country || '',
+      address: fullAddress || addrDetails.formatted || '',
+      addressStreet: row.addressStreet || addrDetails.street || '',
+      addressCity: row.addressCity || addrDetails.city || '',
+      addressRegion: row.addressRegion || addrDetails.region || '',
+      addressPostalCode: row.addressPostalCode || addrDetails.postalCode || '',
+      addressCountry: row.addressCountry || addrDetails.country || '',
       websiteAvailable: row.websiteAvailable || '',
       socialProfiles: row.socialProfiles || '',
       socialLinks: row.socialLinks || row.socialProfiles || '',

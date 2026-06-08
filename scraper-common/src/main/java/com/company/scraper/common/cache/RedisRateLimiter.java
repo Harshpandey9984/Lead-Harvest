@@ -16,8 +16,15 @@ public class RedisRateLimiter {
     public boolean allow(String key, int limit, Duration window) {
         String redisKey = "rate:" + key;
         Long current = redisTemplate.opsForValue().increment(redisKey);
-        if (current != null && current == 1L) {
-            redisTemplate.expire(redisKey, window);
+        if (current != null) {
+            if (current == 1L) {
+                redisTemplate.expire(redisKey, window);
+            } else {
+                Long ttl = redisTemplate.getExpire(redisKey);
+                if (ttl != null && ttl == -1L) {
+                    redisTemplate.expire(redisKey, window);
+                }
+            }
         }
         return current != null && current <= limit;
     }

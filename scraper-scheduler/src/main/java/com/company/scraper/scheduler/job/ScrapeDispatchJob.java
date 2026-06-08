@@ -8,8 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class ScrapeDispatchJob extends QuartzJobBean {
 
-    @Autowired
     private ScheduleService scheduleService;
+
+    @Autowired
+    public void setScheduleService(ScheduleService scheduleService) {
+        this.scheduleService = scheduleService;
+    }
 
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {

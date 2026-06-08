@@ -3,16 +3,16 @@
   <desc>Premium logo combining a database, globe, data flow, and growth arrow.</desc>
   <defs>
     <linearGradient id="leadHarvestGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#31d0aa" />
-      <stop offset="52%" stop-color="#3b82f6" />
-      <stop offset="100%" stop-color="#f59e0b" />
+      <stop offset="0%" stop-color="#1b4332" />
+      <stop offset="52%" stop-color="#2d6a4f" />
+      <stop offset="100%" stop-color="#74c69d" />
     </linearGradient>
     <linearGradient id="leadHarvestGlow" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
       <stop offset="100%" stop-color="#ffffff" stop-opacity="0.15" />
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="#081120" />
+  <rect width="512" height="512" rx="112" fill="#0b1a16" />
   <circle cx="256" cy="250" r="144" fill="none" stroke="url(#leadHarvestGradient)" stroke-width="24" opacity="0.92" />
   <circle cx="256" cy="250" r="110" fill="none" stroke="url(#leadHarvestGlow)" stroke-width="4" opacity="0.35" />
   <path d="M165 286c18 24 52 38 91 38s73-14 91-38" fill="none" stroke="url(#leadHarvestGradient)" stroke-width="20" stroke-linecap="round" />
@@ -26,7 +26,7 @@
     <ellipse cx="256" cy="176" rx="18" ry="12" opacity="0.9" />
     <ellipse cx="312" cy="194" rx="18" ry="12" opacity="0.9" />
   </g>
-  <g fill="#081120" opacity="0.65">
+  <g fill="#0b1a16" opacity="0.65">
     <rect x="170" y="338" width="172" height="18" rx="9" />
     <rect x="188" y="366" width="136" height="12" rx="6" opacity="0.9" />
   </g>

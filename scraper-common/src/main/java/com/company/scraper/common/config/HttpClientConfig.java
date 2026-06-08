@@ -21,15 +21,40 @@ public class HttpClientConfig {
         Duration connectTimeout = properties.getHttp().getConnectTimeout();
         Duration readTimeout = properties.getHttp().getReadTimeout();
         Duration writeTimeout = properties.getHttp().getWriteTimeout();
-        return new OkHttpClient.Builder()
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
             .connectTimeout(connectTimeout)
             .readTimeout(readTimeout)
             .writeTimeout(writeTimeout)
             .connectionPool(new ConnectionPool(
                 properties.getHttp().getMaxTotalConnections(),
                 5,
-                java.util.concurrent.TimeUnit.MINUTES))
-            .build();
+                java.util.concurrent.TimeUnit.MINUTES));
+        
+        return configureTrustAll(builder).build();
+    }
+
+    private static OkHttpClient.Builder configureTrustAll(OkHttpClient.Builder builder) {
+        try {
+            javax.net.ssl.TrustManager[] trustAllCerts = new javax.net.ssl.TrustManager[] {
+                new javax.net.ssl.X509TrustManager() {
+                    @Override
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
+                    @Override
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
+                    @Override
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return new java.security.cert.X509Certificate[]{};
+                    }
+                }
+            };
+            javax.net.ssl.SSLContext sslContext = javax.net.ssl.SSLContext.getInstance("SSL");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            builder.sslSocketFactory(sslContext.getSocketFactory(), (javax.net.ssl.X509TrustManager) trustAllCerts[0]);
+            builder.hostnameVerifier((hostname, session) -> true);
+        } catch (Exception e) {
+            // ignore
+        }
+        return builder;
     }
 
     @Bean
