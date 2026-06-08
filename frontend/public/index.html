@@ -775,6 +775,13 @@
     }
     .single-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
+    .filter-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+      gap: 10px;
+      width: 100%;
+    }
+
     @media (max-width: 1480px) {
       .hero, .studio-grid { grid-template-columns: 1fr; }
       .metric-card { grid-column: span 4; }
@@ -782,17 +789,106 @@
       .kanban, .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 1080px) {
-      .app-shell { grid-template-columns: 1fr; }
-      .sidebar { position: relative; top: auto; height: auto; }
+      .app-shell {
+        grid-template-columns: 1fr;
+        padding: 16px;
+        gap: 16px;
+      }
+      .sidebar {
+        position: relative;
+        top: 0;
+        height: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 20px;
+        gap: 14px;
+      }
+      .brand {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .sidebar nav {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        overflow-x: auto;
+        max-width: 100%;
+        padding-bottom: 4px;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .sidebar nav::-webkit-scrollbar {
+        display: none;
+      }
+      .nav-link {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+      }
+      .sidebar-footer {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+      }
+      .sidebar-footer .chip-row {
+        display: none;
+      }
       .metric-card { grid-column: span 6; }
       .url-box, .hero { grid-template-columns: 1fr; }
     }
     @media (max-width: 760px) {
-      .app-shell { padding: 14px; }
+      .app-shell { padding: 12px; gap: 12px; }
+      .sidebar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+      }
+      .brand {
+        justify-content: center;
+      }
+      .sidebar nav {
+        justify-content: flex-start;
+      }
+      .sidebar-footer {
+        justify-content: center;
+      }
       .panel, .hero, .history-shell, .crm-shell, .footer-shell, .sidebar { border-radius: 20px; }
       .metric-card, .kanban, .pipeline { grid-template-columns: 1fr; }
       .metric-card { grid-column: span 12; }
-      .browser-frame { min-height: 520px; }
+      .browser-frame { min-height: 400px; }
+      .section-header, .panel-header, .panel-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .history-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .btn {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+      }
+      .hero-actions, .history-actions, .action-row, .modal-actions {
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+      }
+      .hero-actions .btn, .history-actions .btn, .action-row .btn, .modal-actions .btn {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+      }
+      .filter-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -1002,7 +1098,7 @@
         </div>
 
         <div class="history-filters">
-          <div class="filter-bar">
+          <div class="filter-bar filter-grid">
             <input class="search-box" id="searchInput" placeholder="Search website, business, phone, email, category, status">
             <select class="select-input" id="statusFilter">
               <option value="all">All statuses</option>
