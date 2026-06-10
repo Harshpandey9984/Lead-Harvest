@@ -782,86 +782,130 @@
       width: 100%;
     }
 
+    /* Mobile Header & Sidebar Drawer Styles */
+    .mobile-header {
+      display: none;
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 68px;
+      padding: 0 20px;
+      background: linear-gradient(180deg, rgba(11, 28, 24, 0.96), rgba(14, 38, 33, 0.88));
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    [data-theme="light"] .mobile-header {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 248, 246, 0.88));
+    }
+    .mobile-header .brand {
+      border: none;
+      padding: 0;
+    }
+    .mobile-header .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+    }
+    .mobile-header .brand-title strong {
+      font-size: 0.95rem;
+    }
+
+    .menu-toggle {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 24px;
+      height: 18px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      z-index: 210;
+    }
+    .menu-toggle span {
+      width: 100%;
+      height: 2px;
+      background-color: var(--text);
+      border-radius: 2px;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    /* Hamburger animation */
+    .menu-toggle.active span:nth-child(1) {
+      transform: translateY(8px) rotate(45deg);
+    }
+    .menu-toggle.active span:nth-child(2) {
+      opacity: 0;
+    }
+    .menu-toggle.active span:nth-child(3) {
+      transform: translateY(-8px) rotate(-45deg);
+    }
+
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 8, 14, 0.62);
+      backdrop-filter: blur(5px);
+      z-index: 190;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .sidebar-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     @media (max-width: 1480px) {
       .hero, .studio-grid { grid-template-columns: 1fr; }
       .metric-card { grid-column: span 4; }
       .analytics-grid { grid-template-columns: 1fr; }
       .kanban, .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-    @media (max-width: 1080px) {
+
+    @media (max-width: 1024px) {
+      .mobile-header {
+        display: flex;
+      }
       .app-shell {
         grid-template-columns: 1fr;
         padding: 16px;
         gap: 16px;
+        margin-top: 0;
       }
       .sidebar {
-        position: relative;
+        position: fixed;
+        left: 0;
         top: 0;
-        height: auto;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-        padding: 14px 20px;
-        gap: 14px;
+        bottom: 0;
+        width: 280px;
+        height: 100vh;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 200;
+        border-radius: 0;
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+        border: none;
+        border-right: 1px solid var(--border);
       }
-      .brand {
-        border-bottom: none;
-        padding-bottom: 0;
-      }
-      .sidebar nav {
-        display: flex;
-        flex-direction: row;
-        gap: 8px;
-        overflow-x: auto;
-        max-width: 100%;
-        padding-bottom: 4px;
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-      .sidebar nav::-webkit-scrollbar {
-        display: none;
-      }
-      .nav-link {
-        padding: 8px 12px;
-        font-size: 0.9rem;
-        white-space: nowrap;
-      }
-      .sidebar-footer {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 12px;
-        margin-top: 0;
-        padding-top: 0;
-        border-top: none;
-      }
-      .sidebar-footer .chip-row {
-        display: none;
+      .sidebar.open {
+        transform: translateX(0);
       }
       .metric-card { grid-column: span 6; }
       .url-box, .hero { grid-template-columns: 1fr; }
     }
+
     @media (max-width: 760px) {
       .app-shell { padding: 12px; gap: 12px; }
-      .sidebar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 14px;
-      }
-      .brand {
-        justify-content: center;
-      }
-      .sidebar nav {
-        justify-content: flex-start;
-      }
-      .sidebar-footer {
-        justify-content: center;
-      }
       .panel, .hero, .history-shell, .crm-shell, .footer-shell, .sidebar { border-radius: 20px; }
       .metric-card, .kanban, .pipeline { grid-template-columns: 1fr; }
       .metric-card { grid-column: span 12; }
       .browser-frame { min-height: 400px; }
+      .preview-area { min-height: 340px; }
       .section-header, .panel-header, .panel-header-row {
         flex-direction: column;
         align-items: flex-start;
@@ -893,6 +937,21 @@
   </style>
 </head>
 <body data-theme="dark">
+  <header class="mobile-header">
+    <div class="brand">
+      <div class="brand-mark"><img src="/lead-harvest-logo.svg" alt="Lead Harvest logo"></div>
+      <div class="brand-title">
+        <strong>Lead Harvest</strong>
+      </div>
+    </div>
+    <button class="menu-toggle" id="menuToggleBtn" aria-label="Toggle Navigation Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </header>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
@@ -1254,6 +1313,31 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    // Mobile Navigation Drawer Toggle Handlers
+    document.addEventListener('DOMContentLoaded', () => {
+      const menuToggleBtn = document.getElementById('menuToggleBtn');
+      const sidebar = document.querySelector('.sidebar');
+      const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+      function toggleSidebar() {
+        sidebar.classList.toggle('open');
+        sidebarOverlay.classList.toggle('active');
+        menuToggleBtn.classList.toggle('active');
+      }
+
+      menuToggleBtn?.addEventListener('click', toggleSidebar);
+      sidebarOverlay?.addEventListener('click', toggleSidebar);
+      
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          if (sidebar.classList.contains('open')) {
+            toggleSidebar();
+          }
+        });
+      });
+    });
+
     const BACKEND_ORIGIN = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3100'
       : window.location.origin;
