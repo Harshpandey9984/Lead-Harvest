@@ -27,6 +27,7 @@
         <kafka.version>3.8.0</kafka.version>
         <micrometer.version>1.13.2</micrometer.version>
         <lombok.version>1.18.32</lombok.version>
+        <poi.version>5.2.5</poi.version>
     </properties>
 
     <dependencyManagement>

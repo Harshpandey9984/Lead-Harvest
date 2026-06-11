@@ -965,6 +965,7 @@
       <nav>
         <a class="nav-link active" href="#overview">Overview</a>
         <a class="nav-link" href="#studio">Visual Studio</a>
+        <a class="nav-link" href="#mass-extract">Mass Extract</a>
         <a class="nav-link" href="#history">History Grid</a>
         <a class="nav-link" href="#analytics">Analytics</a>
         <a class="nav-link" href="#crm">CRM Pipeline</a>
@@ -1130,6 +1131,225 @@
               <div class="mini-grid" id="leadInsights"></div>
               <div class="entity-list" id="recommendations"></div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="mass-extract">
+        <div class="studio-headers">
+          <div class="section-header">
+            <div>
+              <h2>Mass Extract & Business Discovery Engine</h2>
+              <p>Discover, scrape, filter, and enrich large-scale business leads using Google Maps and real-time website intelligence.</p>
+            </div>
+          </div>
+          <div class="action-row">
+            <span class="chip" id="massStatusChip">Status: Idle</span>
+            <span class="chip" id="massFoundChip">0 found</span>
+            <span class="chip" id="massEmailsChip">0 emails</span>
+          </div>
+        </div>
+
+        <div class="url-box">
+          <div class="sub-panel">
+            <div class="section-header">
+              <div>
+                <h3>1. Search Configuration</h3>
+                <p>Define your target query and location coordinates to search business entities via Google Places.</p>
+              </div>
+            </div>
+            <div class="inline-edit">
+              <label>Business Category / Search Query
+                <input class="text-input" id="massQuery" placeholder="e.g. Cafe, Gym, Restaurant, Dental Clinic" value="Cafe">
+              </label>
+              <label>Target City / Location
+                <input class="text-input" id="massLocation" placeholder="e.g. Bhopal, Madhya Pradesh, India" value="Bhopal">
+              </label>
+              <div class="file-row">
+                <div style="flex: 1 1 45%;">
+                  <label>Search Radius (km)
+                    <select class="select-input" id="massRadius">
+                      <option value="1">1 km</option>
+                      <option value="5">5 km</option>
+                      <option value="10" selected>10 km</option>
+                      <option value="25">25 km</option>
+                      <option value="50">50 km</option>
+                    </select>
+                  </label>
+                </div>
+                <div style="flex: 1 1 45%;">
+                  <label>Maximum Leads
+                    <select class="select-input" id="massMaxResults">
+                      <option value="10">10 results</option>
+                      <option value="20">20 results</option>
+                      <option value="50" selected>50 results</option>
+                      <option value="100">100 results</option>
+                      <option value="200">200 results</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div class="action-row" style="margin-top: 15px;">
+              <button class="btn" id="startMassExtractBtn">Start Extraction</button>
+              <button class="btn secondary" id="pauseMassExtractBtn" disabled>Pause</button>
+              <button class="btn secondary" id="resumeMassExtractBtn" disabled>Resume</button>
+              <button class="btn warning" id="stopMassExtractBtn" disabled>Stop</button>
+            </div>
+          </div>
+
+          <div class="side-panel">
+            <div class="section-header">
+              <div>
+                <h3>2. Real-time Progress Center</h3>
+                <p>Observe the geocoding, places search, and async website enrichment steps.</p>
+              </div>
+            </div>
+            <div id="massProgressContainer" class="validation-panel" style="background: rgba(0,0,0,0.15); border-radius: 16px; padding: 16px;">
+              <div class="empty-state" id="massProgressPlaceholder">No active job running. Configure search and click "Start Extraction" above to begin.</div>
+              <div id="massProgressContent" style="display: none; gap: 14px; flex-direction: column; width: 100%;">
+                <div style="display: flex; justify-content: space-between; font-weight: 700;">
+                  <span id="progressJobName">Query: Cafe in Bhopal</span>
+                  <span id="progressPercentage">0%</span>
+                </div>
+                <div class="confidence-bar" style="height: 14px; margin-bottom: 8px;">
+                  <span id="massProgressBar" style="width: 0%; height:100%; transition: width 0.3s ease;"></span>
+                </div>
+                <div class="quality-grid" style="grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                  <div class="preview-field"><strong>Discovered</strong><small id="statDiscovered">0</small></div>
+                  <div class="preview-field"><strong>Processed</strong><small id="statProcessed">0</small></div>
+                  <div class="preview-field"><strong>Success Ratio</strong><small id="statSuccess">0</small></div>
+                  <div class="preview-field"><strong>Failed / Missing Website</strong><small id="statFailed">0</small></div>
+                  <div class="preview-field"><strong>Crawl Speed</strong><small id="statSpeed">0.0 leads/s</small></div>
+                  <div class="preview-field"><strong>Time Remaining</strong><small id="statEta">--</small></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics and Results Section -->
+        <div id="massResultsSection" style="display: flex; flex-direction: column; gap: 20px; margin-top: 20px;">
+          <div class="section-header">
+            <div>
+              <h3>3. Discovery Analytics & Lead Quality</h3>
+              <p>Key indicators, ratings, and capture rates for the currently loaded job.</p>
+            </div>
+          </div>
+          
+          <div class="analytics-grid" id="massAnalyticsGrid">
+            <div class="panel">
+              <div class="section-header"><div><h3 class="panel-title">Overview Metrics</h3><p class="panel-subtitle">Lead summary indicators.</p></div></div>
+              <div class="quality-grid" style="margin-top: 10px;">
+                <div class="preview-field"><strong>Total Leads Captured</strong><small id="analyticTotal">0</small></div>
+                <div class="preview-field"><strong>Average Google Rating</strong><small id="analyticRating">0.0 ★</small></div>
+                <div class="preview-field"><strong>Website Capture Rate</strong><small id="analyticWebsite">0% (0 / 0)</small></div>
+                <div class="preview-field"><strong>Email Capture Rate</strong><small id="analyticEmail">0% (0 / 0)</small></div>
+              </div>
+            </div>
+            
+            <div class="panel">
+              <div class="section-header"><div><h3 class="panel-title">Rating Distribution</h3><p class="panel-subtitle">Ratings range split.</p></div></div>
+              <div class="trend-list" id="massRatingDist">
+                <!-- dynamic bars -->
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="section-header"><div><h3 class="panel-title">Top Categories</h3><p class="panel-subtitle">Business classifications.</p></div></div>
+              <div class="trend-list" id="massCategoryDist">
+                <!-- dynamic bars -->
+              </div>
+            </div>
+          </div>
+
+          <div class="section-header" style="margin-top: 15px;">
+            <div>
+              <h3>4. Discovered Leads Database</h3>
+              <p>Filter, search, and download your captured enterprise-grade business leads.</p>
+            </div>
+            <div class="action-row">
+              <button class="btn secondary" id="massExportExcel">Export Excel</button>
+              <button class="btn secondary" id="massExportCsv">Export CSV</button>
+              <button class="btn secondary" id="massExportJson">Export JSON</button>
+            </div>
+          </div>
+
+          <!-- Filters Bar -->
+          <div class="filter-bar filter-grid">
+            <input class="search-box" id="massSearchInput" placeholder="Filter leads by name, category, or city...">
+            <select class="select-input" id="massRatingFilter">
+              <option value="all">Any Rating</option>
+              <option value="4.5">4.5+ ★ Rating</option>
+              <option value="4.0">4.0+ ★ Rating</option>
+              <option value="3.5">3.5+ ★ Rating</option>
+            </select>
+            <div style="display: flex; gap: 10px; flex: 1; align-items: center; justify-content: space-around; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius:14px; padding: 0 14px; height: 100%;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor:pointer;"><input class="checkbox-cell" id="massEmailFilter" type="checkbox"> <span>With Email</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor:pointer;"><input class="checkbox-cell" id="massWebsiteFilter" type="checkbox"> <span>With Website</span></label>
+            </div>
+          </div>
+
+          <!-- Results Grid Table -->
+          <div class="history-table-wrap">
+            <table id="massResultsTable" style="min-width: 1300px;">
+              <thead>
+                <tr>
+                  <th>Business Name</th>
+                  <th>Category</th>
+                  <th>Rating</th>
+                  <th>Reviews</th>
+                  <th>Phone</th>
+                  <th>Scraped Email</th>
+                  <th>Website</th>
+                  <th>City</th>
+                  <th>Postal Code</th>
+                  <th>Social Profiles</th>
+                </tr>
+              </thead>
+              <tbody id="massResultsBody">
+                <tr><td colspan="10" class="table-empty">No data available. Run an extraction or load a past job below.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination">
+            <div class="muted" id="massPaginationInfo">Showing 0-0 of 0 leads</div>
+            <div class="action-row">
+              <button class="btn secondary" id="massPrevPage">Previous</button>
+              <button class="btn secondary" id="massNextPage">Next</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historical Jobs list -->
+        <div style="display: flex; flex-direction: column; gap: 18px; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 25px;">
+          <div class="section-header">
+            <div>
+              <h3>Historical Discovery Jobs</h3>
+              <p>Reload previous extraction query results, review progress states, or delete job logs.</p>
+            </div>
+          </div>
+          <div class="history-table-wrap">
+            <table style="min-width: 900px;">
+              <thead>
+                <tr>
+                  <th>Date Created</th>
+                  <th>Query</th>
+                  <th>Location</th>
+                  <th>Radius</th>
+                  <th>Max Results</th>
+                  <th>Status</th>
+                  <th>Found</th>
+                  <th>Scraped</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="massHistoryBody">
+                <tr><td colspan="9" class="table-empty">No historical jobs found.</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -1331,6 +1551,8 @@
       const navLinks = document.querySelectorAll('.nav-link');
       navLinks.forEach(link => {
         link.addEventListener('click', () => {
+          navLinks.forEach(l => l.classList.remove('active'));
+          link.classList.add('active');
           if (sidebar.classList.contains('open')) {
             toggleSidebar();
           }
@@ -1341,6 +1563,7 @@
     const BACKEND_ORIGIN = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3100'
       : window.location.origin;
+    const JAVA_BACKEND_ORIGIN = 'http://localhost:8080';
     const USE_LIVE_BACKEND = true;
     const FALLBACK_SUMMARY = {
       platformName: 'Lead Harvest',
@@ -1409,7 +1632,23 @@
       inspectorIndex: 0,
       crawlProgress: 0,
       crawlTimer: null,
-      db: null
+      db: null,
+      massExtract: {
+        activeJobId: null,
+        currentJob: null,
+        history: [],
+        results: [],
+        page: 0,
+        totalPages: 1,
+        totalElements: 0,
+        pollInterval: null,
+        filters: {
+          search: '',
+          minRating: 'all',
+          hasEmail: false,
+          hasWebsite: false
+        }
+      }
     };
 
     const elements = {
@@ -1465,7 +1704,50 @@
       discoveryChip: document.getElementById('discoveryChip'),
       confidenceChip: document.getElementById('confidenceChip'),
       pageBadge: document.getElementById('pageBadge'),
-      previewBadge: document.getElementById('previewBadge')
+      previewBadge: document.getElementById('previewBadge'),
+      // Mass Extract elements
+      massQuery: document.getElementById('massQuery'),
+      massLocation: document.getElementById('massLocation'),
+      massRadius: document.getElementById('massRadius'),
+      massMaxResults: document.getElementById('massMaxResults'),
+      startMassExtractBtn: document.getElementById('startMassExtractBtn'),
+      pauseMassExtractBtn: document.getElementById('pauseMassExtractBtn'),
+      resumeMassExtractBtn: document.getElementById('resumeMassExtractBtn'),
+      stopMassExtractBtn: document.getElementById('stopMassExtractBtn'),
+      massProgressContainer: document.getElementById('massProgressContainer'),
+      massProgressPlaceholder: document.getElementById('massProgressPlaceholder'),
+      massProgressContent: document.getElementById('massProgressContent'),
+      progressJobName: document.getElementById('progressJobName'),
+      progressPercentage: document.getElementById('progressPercentage'),
+      massProgressBar: document.getElementById('massProgressBar'),
+      statDiscovered: document.getElementById('statDiscovered'),
+      statProcessed: document.getElementById('statProcessed'),
+      statSuccess: document.getElementById('statSuccess'),
+      statFailed: document.getElementById('statFailed'),
+      statSpeed: document.getElementById('statSpeed'),
+      statEta: document.getElementById('statEta'),
+      massStatusChip: document.getElementById('massStatusChip'),
+      massFoundChip: document.getElementById('massFoundChip'),
+      massEmailsChip: document.getElementById('massEmailsChip'),
+      analyticTotal: document.getElementById('analyticTotal'),
+      analyticRating: document.getElementById('analyticRating'),
+      analyticWebsite: document.getElementById('analyticWebsite'),
+      analyticEmail: document.getElementById('analyticEmail'),
+      massRatingDist: document.getElementById('massRatingDist'),
+      massCategoryDist: document.getElementById('massCategoryDist'),
+      massExportExcel: document.getElementById('massExportExcel'),
+      massExportCsv: document.getElementById('massExportCsv'),
+      massExportJson: document.getElementById('massExportJson'),
+      massSearchInput: document.getElementById('massSearchInput'),
+      massRatingFilter: document.getElementById('massRatingFilter'),
+      massEmailFilter: document.getElementById('massEmailFilter'),
+      massWebsiteFilter: document.getElementById('massWebsiteFilter'),
+      massResultsTable: document.getElementById('massResultsTable'),
+      massResultsBody: document.getElementById('massResultsBody'),
+      massPaginationInfo: document.getElementById('massPaginationInfo'),
+      massPrevPage: document.getElementById('massPrevPage'),
+      massNextPage: document.getElementById('massNextPage'),
+      massHistoryBody: document.getElementById('massHistoryBody')
     };
 
     const DB_NAME = 'lead-harvest-history';
@@ -2409,6 +2691,470 @@
       renderHistory();
     }
 
+    // ==========================================
+    // MASS EXTRACT SYSTEM LOGIC
+    // ==========================================
+
+    async function startMassExtract() {
+      const query = elements.massQuery.value.trim();
+      const location = elements.massLocation.value.trim();
+      const radiusKm = parseInt(elements.massRadius.value);
+      const maxResults = parseInt(elements.massMaxResults.value);
+
+      if (!query || !location) {
+        showToast('Search Query and Target Location are required!');
+        return;
+      }
+
+      elements.startMassExtractBtn.disabled = true;
+      elements.pauseMassExtractBtn.disabled = false;
+      elements.resumeMassExtractBtn.disabled = true;
+      elements.stopMassExtractBtn.disabled = false;
+
+      // Show progress UI
+      elements.massProgressPlaceholder.style.display = 'none';
+      elements.massProgressContent.style.display = 'flex';
+      
+      elements.progressJobName.textContent = `Query: ${query} in ${location} (${radiusKm} km)`;
+      elements.progressPercentage.textContent = '0%';
+      elements.massProgressBar.style.width = '0%';
+      elements.statDiscovered.textContent = '0';
+      elements.statProcessed.textContent = '0';
+      elements.statSuccess.textContent = '0';
+      elements.statFailed.textContent = '0';
+      elements.statSpeed.textContent = '0.0 leads/s';
+      elements.statEta.textContent = 'Calculating...';
+
+      elements.massStatusChip.textContent = 'Status: PENDING';
+      elements.massFoundChip.textContent = '0 found';
+      elements.massEmailsChip.textContent = '0 emails';
+
+      try {
+        const response = await fetch(`${JAVA_BACKEND_ORIGIN}/api/mass-extract`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, location, radiusKm, maxResults })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to start job: ${response.status}`);
+        }
+
+        const job = await response.json();
+        state.massExtract.activeJobId = job.id;
+        showToast('Mass Extraction Job started successfully!');
+        
+        startMassExtractPolling(job.id);
+        fetchMassExtractHistory();
+
+      } catch (error) {
+        console.error(error);
+        showToast('Failed to connect to Java backend. Is the server running on port 8080?');
+        resetMassExtractButtons();
+      }
+    }
+
+    function resetMassExtractButtons() {
+      elements.startMassExtractBtn.disabled = false;
+      elements.pauseMassExtractBtn.disabled = true;
+      elements.resumeMassExtractBtn.disabled = true;
+      elements.stopMassExtractBtn.disabled = true;
+    }
+
+    function startMassExtractPolling(jobId) {
+      if (state.massExtract.pollInterval) {
+        clearInterval(state.massExtract.pollInterval);
+      }
+
+      state.massExtract.pollInterval = setInterval(() => {
+        pollMassExtractProgress(jobId);
+      }, 1000);
+    }
+
+    async function pollMassExtractProgress(jobId) {
+      try {
+        const response = await fetch(`${JAVA_BACKEND_ORIGIN}/api/mass-extract/${jobId}/progress`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch progress');
+        }
+
+        const progress = await response.json();
+        state.massExtract.currentJob = progress;
+
+        // Update chips
+        elements.massStatusChip.textContent = `Status: ${progress.status}`;
+        elements.massFoundChip.textContent = `${progress.totalFound || 0} found`;
+        elements.massEmailsChip.textContent = `${progress.successCount || 0} scraped`;
+
+        // Update progress section
+        const total = progress.totalFound || 0;
+        const processed = progress.processedCount || 0;
+        const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+        
+        elements.progressPercentage.textContent = `${percent}%`;
+        elements.massProgressBar.style.width = `${percent}%`;
+
+        elements.statDiscovered.textContent = total;
+        elements.statProcessed.textContent = processed;
+        elements.statSuccess.textContent = progress.successCount || 0;
+        elements.statFailed.textContent = progress.failedCount || 0;
+        elements.statSpeed.textContent = `${progress.speed || 0.0} leads/s`;
+        
+        let eta = 'Calculating...';
+        if (progress.etaSeconds > 0) {
+          const m = Math.floor(progress.etaSeconds / 60);
+          const s = progress.etaSeconds % 60;
+          eta = `${m}m ${s}s`;
+        } else if (processed === total && total > 0) {
+          eta = '0s';
+        }
+        elements.statEta.textContent = eta;
+
+        // Button states
+        if (progress.status === 'RUNNING' || progress.status === 'PENDING') {
+          elements.startMassExtractBtn.disabled = true;
+          elements.pauseMassExtractBtn.disabled = false;
+          elements.resumeMassExtractBtn.disabled = true;
+          elements.stopMassExtractBtn.disabled = false;
+        } else if (progress.status === 'PAUSED') {
+          elements.startMassExtractBtn.disabled = true;
+          elements.pauseMassExtractBtn.disabled = true;
+          elements.resumeMassExtractBtn.disabled = false;
+          elements.stopMassExtractBtn.disabled = false;
+        } else {
+          // Completed, Stopped, Failed
+          clearInterval(state.massExtract.pollInterval);
+          state.massExtract.pollInterval = null;
+          
+          resetMassExtractButtons();
+          
+          showToast(`Mass Extract Job finished with status: ${progress.status}`);
+          
+          fetchMassExtractHistory();
+          fetchMassExtractResults(jobId);
+          fetchMassExtractAnalytics(jobId);
+        }
+
+      } catch (error) {
+        console.error('Error polling progress:', error);
+      }
+    }
+
+    async function pauseMassExtract() {
+      const jobId = state.massExtract.activeJobId;
+      if (!jobId) return;
+      try {
+        await fetch(`${JAVA_BACKEND_ORIGIN}/api/mass-extract/${jobId}/pause`, { method: 'POST' });
+        showToast('Job paused.');
+        elements.pauseMassExtractBtn.disabled = true;
+        elements.resumeMassExtractBtn.disabled = false;
+        elements.massStatusChip.textContent = 'Status: PAUSED';
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function resumeMassExtract() {
+      const jobId = state.massExtract.activeJobId;
+      if (!jobId) return;
+      try {
+        await fetch(`${JAVA_BACKEND_ORIGIN}/api/mass-extract/${jobId}/resume`, { method: 'POST' });
+        showToast('Resuming job...');
+        elements.pauseMassExtractBtn.disabled = false;
+        elements.resumeMassExtractBtn.disabled = true;
+        elements.massStatusChip.textContent = 'Status: RUNNING';
+        startMassExtractPolling(jobId);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function stopMassExtract() {
+      const jobId = state.massExtract.activeJobId;
+      if (!jobId) return;
+      try {
+        await fetch(`${JAVA_BACKEND_ORIGIN}/api/mass-extract/${jobId}/stop`, { method: 'POST' });
+        showToast('Job stopped.');
+        if (state.massExtract.pollInterval) {
+          clearInterval(state.massExtract.pollInterval);
+          state.massExtract.pollInterval = null;
+        }
+        resetMassExtractButtons();
+        elements.massStatusChip.textContent = 'Status: STOPPED';
+        fetchMassExtractHistory();
+        fetchMassExtractResults(jobId);
+        fetchMassExtractAnalytics(jobId);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function rerunMassExtract(jobId) {
+      try {
+        await fetch(`${JAVA_BACKEND_ORIGIN}/api/mass-extract/${jobId}/rerun`, { method: 'POST' });
+        showToast('Job rerun started.');
+        state.massExtract.activeJobId = jobId;
+        elements.massProgressPlaceholder.style.display = 'none';
+        elements.massProgressContent.style.display = 'flex';
+        startMassExtractPolling(jobId);
+        fetchMassExtractHistory();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function fetchMassExtractHistory() {
+      try {
+        const response = await fetch(`${JAVA_BACKEND_ORIGIN}/api/mass-extract/history`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch history');
+        }
+
+        const history = await response.json();
+        state.massExtract.history = history;
+        renderMassHistory(history);
+
+      } catch (error) {
+        console.error('Failed to load history:', error);
+      }
+    }
+
+    function renderMassHistory(history) {
+      if (!history || !history.length) {
+        elements.massHistoryBody.innerHTML = '<tr><td colspan="9" class="table-empty">No historical jobs found.</td></tr>';
+        return;
+      }
+
+      elements.massHistoryBody.innerHTML = history.map(job => {
+        const date = new Date(job.createdAt).toLocaleString();
+        const isSelected = state.massExtract.activeJobId === job.id;
+        return `
+          <tr style="${isSelected ? 'background: rgba(45, 106, 79, 0.12); border-left: 3px solid var(--accent);' : ''}">
+            <td>${escapeHtml(date)}</td>
+            <td><strong>${escapeHtml(job.query)}</strong></td>
+            <td>${escapeHtml(job.location)}</td>
+            <td>${job.radiusKm} km</td>
+            <td>${job.maxResults}</td>
+            <td><span class="pill ${statusClassForMass(job.status)}">${escapeHtml(job.status)}</span></td>
+            <td>${job.totalFound || 0}</td>
+            <td>${job.processedCount || 0}</td>
+            <td>
+              <div class="row-tools">
+                <button class="btn secondary" style="padding: 6px 10px; font-size: 0.8rem;" onclick="loadMassExtractJob(${job.id})">Load</button>
+                <button class="btn secondary" style="padding: 6px 10px; font-size: 0.8rem;" onclick="rerunMassExtract(${job.id})">Rerun</button>
+                <button class="btn ghost" style="padding: 6px 10px; font-size: 0.8rem; color: var(--danger);" onclick="deleteMassExtractJob(${job.id})">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function statusClassForMass(status) {
+      if (status === 'COMPLETED') return 'good';
+      if (status === 'RUNNING' || status === 'PENDING') return 'warn';
+      if (status === 'PAUSED') return 'neutral';
+      return 'cold';
+    }
+
+    window.loadMassExtractJob = function(jobId) {
+      state.massExtract.activeJobId = jobId;
+      state.massExtract.page = 0;
+      
+      const job = state.massExtract.history.find(j => j.id === jobId);
+      if (job) {
+        elements.massProgressPlaceholder.style.display = 'none';
+        elements.massProgressContent.style.display = 'flex';
+        elements.progressJobName.textContent = `Query: ${job.query} in ${job.location} (${job.radiusKm} km)`;
+        
+        const total = job.totalFound || 0;
+        const processed = job.processedCount || 0;
+        const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+        elements.progressPercentage.textContent = `${percent}%`;
+        elements.massProgressBar.style.width = `${percent}%`;
+        
+        elements.statDiscovered.textContent = total;
+        elements.statProcessed.textContent = processed;
+        elements.statSuccess.textContent = job.successCount || 0;
+        elements.statFailed.textContent = job.failedCount || 0;
+        elements.statSpeed.textContent = '0.0 leads/s';
+        elements.statEta.textContent = '0s';
+
+        elements.massStatusChip.textContent = `Status: ${job.status}`;
+        elements.massFoundChip.textContent = `${total} found`;
+        elements.massEmailsChip.textContent = `${job.successCount || 0} scraped`;
+
+        if (job.status === 'RUNNING' || job.status === 'PENDING' || job.status === 'PAUSED') {
+          startMassExtractPolling(jobId);
+        } else {
+          resetMassExtractButtons();
+        }
+      }
+
+      fetchMassExtractHistory();
+      fetchMassExtractResults(jobId);
+      fetchMassExtractAnalytics(jobId);
+    }
+
+    window.rerunMassExtract = function(jobId) {
+      rerunMassExtract(jobId);
+    }
+
+    window.deleteMassExtractJob = async function(jobId) {
+      if (confirm('Are you sure you want to delete this job and all its scraped results?')) {
+        try {
+          await fetch(`${JAVA_BACKEND_ORIGIN}/api/mass-extract/${jobId}`, { method: 'DELETE' });
+          showToast('Job deleted.');
+          if (state.massExtract.activeJobId === jobId) {
+            state.massExtract.activeJobId = null;
+            elements.massProgressPlaceholder.style.display = 'block';
+            elements.massProgressContent.style.display = 'none';
+            elements.massResultsBody.innerHTML = '<tr><td colspan="10" class="table-empty">No data available. Run an extraction or load a past job below.</td></tr>';
+          }
+          fetchMassExtractHistory();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
+
+    async function fetchMassExtractResults(jobId) {
+      const page = state.massExtract.page;
+      const search = elements.massSearchInput.value.trim();
+      const minRating = elements.massRatingFilter.value !== 'all' ? elements.massRatingFilter.value : '';
+      const hasEmail = elements.massEmailFilter.checked;
+      const hasWebsite = elements.massWebsiteFilter.checked;
+
+      let url = `${JAVA_BACKEND_ORIGIN}/api/mass-extract/${jobId}/results?page=${page}&size=10`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (minRating) url += `&minRating=${minRating}`;
+      if (hasEmail) url += `&hasEmail=true`;
+      if (hasWebsite) url += `&hasWebsite=true`;
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to load results');
+        
+        const data = await response.json();
+        state.massExtract.results = data.content;
+        state.massExtract.totalPages = data.totalPages;
+        state.massExtract.totalElements = data.totalElements;
+
+        renderMassResults(data.content);
+        updateMassPaginationInfo(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    function renderMassResults(results) {
+      if (!results || !results.length) {
+        elements.massResultsBody.innerHTML = '<tr><td colspan="10" class="table-empty">No matching leads found for the selected filters.</td></tr>';
+        return;
+      }
+
+      elements.massResultsBody.innerHTML = results.map(r => {
+        const rating = r.rating ? `${r.rating} ★` : '--';
+        const reviews = r.reviewsCount || 0;
+        const phone = r.phone || r.secondaryPhone || '--';
+        const email = r.email ? `<a href="mailto:${escapeHtml(r.email)}" style="color:var(--accent); font-weight:700;">${escapeHtml(r.email)}</a>` : '--';
+        const website = r.websiteUrl ? `<a href="${escapeHtml(r.websiteUrl)}" target="_blank" style="text-decoration:underline; color:var(--muted);">${escapeHtml(r.websiteUrl.replace(/^https?:\/\/(www\.)?/, ''))}</a>` : '--';
+        
+        const socials = (r.socialLinks || []).map(link => {
+          let platform = 'Link';
+          if (link.includes('facebook.com')) platform = 'FB';
+          if (link.includes('linkedin.com')) platform = 'LN';
+          if (link.includes('instagram.com')) platform = 'IG';
+          if (link.includes('twitter.com') || link.includes('x.com')) platform = 'TW';
+          if (link.includes('youtube.com')) platform = 'YT';
+          return `<a href="${escapeHtml(link)}" target="_blank" class="pill" style="padding: 2px 6px; font-size: 0.72rem; margin-right: 4px;">${platform}</a>`;
+        }).join('');
+
+        return `
+          <tr>
+            <td><strong>${escapeHtml(r.name)}</strong></td>
+            <td><span class="chip">${escapeHtml(r.category || 'Local Business')}</span></td>
+            <td><span class="pill good" style="font-weight:700;">${rating}</span></td>
+            <td>${reviews}</td>
+            <td>${escapeHtml(phone)}</td>
+            <td>${email}</td>
+            <td>${website}</td>
+            <td>${escapeHtml(r.city || '--')}</td>
+            <td>${escapeHtml(r.postalCode || '--')}</td>
+            <td>${socials || '--'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function updateMassPaginationInfo(data) {
+      const page = data.number;
+      const size = data.size;
+      const total = data.totalElements;
+      
+      const start = total > 0 ? (page * size) + 1 : 0;
+      const end = Math.min((page + 1) * size, total);
+      elements.massPaginationInfo.textContent = `Showing ${start}-${end} of ${total} leads`;
+
+      elements.massPrevPage.disabled = data.first;
+      elements.massNextPage.disabled = data.last;
+    }
+
+    async function fetchMassExtractAnalytics(jobId) {
+      try {
+        const response = await fetch(`${JAVA_BACKEND_ORIGIN}/api/mass-extract/${jobId}/analytics`);
+        if (!response.ok) throw new Error('Failed to load analytics');
+
+        const data = await response.json();
+        
+        elements.analyticTotal.textContent = data.totalBusinesses;
+        elements.analyticRating.textContent = `${data.averageRating || 0.0} ★`;
+        
+        const webPercent = data.totalBusinesses > 0 ? Math.round((data.withWebsite / data.totalBusinesses) * 100) : 0;
+        elements.analyticWebsite.textContent = `${webPercent}% (${data.withWebsite} / ${data.totalBusinesses})`;
+
+        const emailPercent = data.totalBusinesses > 0 ? Math.round((data.withEmail / data.totalBusinesses) * 100) : 0;
+        elements.analyticEmail.textContent = `${emailPercent}% (${data.withEmail} / ${data.totalBusinesses})`;
+
+        const ratingDist = data.ratingDistribution || {};
+        const maxRatingCount = Math.max(...Object.values(ratingDist), 1);
+        elements.massRatingDist.innerHTML = Object.entries(ratingDist).map(([label, count]) => {
+          const pct = Math.round((count / maxRatingCount) * 100);
+          return `
+            <div class="trend-item">
+              <div class="trend-top"><strong>${escapeHtml(label)}</strong><span>${count}</span></div>
+              <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+            </div>
+          `;
+        }).join('');
+
+        const catDist = data.categoryDistribution || {};
+        const maxCatCount = Math.max(...Object.values(catDist), 1);
+        elements.massCategoryDist.innerHTML = Object.entries(catDist).map(([label, count]) => {
+          const pct = Math.round((count / maxCatCount) * 100);
+          return `
+            <div class="trend-item">
+              <div class="trend-top"><strong>${escapeHtml(label)}</strong><span>${count}</span></div>
+              <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+            </div>
+          `;
+        }).join('');
+
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    function downloadMassExport(format) {
+      const jobId = state.massExtract.activeJobId;
+      if (!jobId) {
+        showToast('Please load or run a Mass Extract job first!');
+        return;
+      }
+      window.location.href = `${JAVA_BACKEND_ORIGIN}/api/mass-extract/${jobId}/export?format=${format}`;
+      showToast(`Downloading leads as ${format.toUpperCase()}...`);
+    }
+
     async function clearHistory() {
       await dbClear();
       state.history = [];
@@ -2507,6 +3253,46 @@
         renderAll();
         showToast('Selected rows deleted.');
       });
+
+      // Mass Extract listeners
+      elements.startMassExtractBtn.addEventListener('click', startMassExtract);
+      elements.pauseMassExtractBtn.addEventListener('click', pauseMassExtract);
+      elements.resumeMassExtractBtn.addEventListener('click', resumeMassExtract);
+      elements.stopMassExtractBtn.addEventListener('click', stopMassExtract);
+
+      elements.massExportExcel.addEventListener('click', () => downloadMassExport('excel'));
+      elements.massExportCsv.addEventListener('click', () => downloadMassExport('csv'));
+      elements.massExportJson.addEventListener('click', () => downloadMassExport('json'));
+
+      elements.massSearchInput.addEventListener('input', () => {
+        state.massExtract.page = 0;
+        if (state.massExtract.activeJobId) fetchMassExtractResults(state.massExtract.activeJobId);
+      });
+      elements.massRatingFilter.addEventListener('change', () => {
+        state.massExtract.page = 0;
+        if (state.massExtract.activeJobId) fetchMassExtractResults(state.massExtract.activeJobId);
+      });
+      elements.massEmailFilter.addEventListener('change', () => {
+        state.massExtract.page = 0;
+        if (state.massExtract.activeJobId) fetchMassExtractResults(state.massExtract.activeJobId);
+      });
+      elements.massWebsiteFilter.addEventListener('change', () => {
+        state.massExtract.page = 0;
+        if (state.massExtract.activeJobId) fetchMassExtractResults(state.massExtract.activeJobId);
+      });
+
+      elements.massPrevPage.addEventListener('click', () => {
+        if (state.massExtract.page > 0) {
+          state.massExtract.page--;
+          if (state.massExtract.activeJobId) fetchMassExtractResults(state.massExtract.activeJobId);
+        }
+      });
+      elements.massNextPage.addEventListener('click', () => {
+        if (state.massExtract.page < state.massExtract.totalPages - 1) {
+          state.massExtract.page++;
+          if (state.massExtract.activeJobId) fetchMassExtractResults(state.massExtract.activeJobId);
+        }
+      });
     }
 
     function extractFromJson(text) {
@@ -2559,6 +3345,7 @@
       state.db = await openDb();
       await Promise.all([loadSummary(), loadHealth()]);
       await loadHistory();
+      fetchMassExtractHistory();
       const defaultUrl = normalizeUrl(elements.urlInput.value.split(/\n/)[0]);
       elements.previewUrl.textContent = defaultUrl || 'Paste a URL to begin';
       elements.previewFallback.style.display = 'grid';

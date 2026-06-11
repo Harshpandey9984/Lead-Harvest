@@ -34,7 +34,7 @@ public class ScrapeTaskPublisher {
             target.getUrl(),
             target.getMethod(),
             target.getTargetType(),
-            toMap(target.getHeaders()),
+            toStringMap(target.getHeaders()),
             target.getBody(),
             toStringMap(target.getSelectors()),
             toMap(target.getPagination()),
