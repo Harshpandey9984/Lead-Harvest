@@ -1324,6 +1324,50 @@ app.post('/lh-api/lead-harvest/analyze', async (req, res) => {
   res.json({ processedCount: results.length, results });
 });
 
+// ── Mass Extract stub routes (graceful fallback when Java backend is not available) ──
+// These endpoints return empty/placeholder data so the frontend works without errors
+// on Render deployments where the full Java backend isn't running.
+
+app.get('/api/mass-extract/history', (req, res) => {
+  res.json([]);
+});
+
+app.post('/api/mass-extract', (req, res) => {
+  res.status(503).json({
+    error: 'Mass Extract requires the full Java backend',
+    message: 'The Mass Extract feature uses OpenStreetMap Overpass API and requires the Java Spring Boot backend with PostgreSQL. Please run the project locally with Docker to use this feature.',
+    status: 'UNAVAILABLE'
+  });
+});
+
+app.get('/api/mass-extract/:id/progress', (req, res) => {
+  res.status(404).json({ error: 'Job not found. Mass Extract requires the Java backend.' });
+});
+
+app.get('/api/mass-extract/:id/results', (req, res) => {
+  res.json({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 10, empty: true });
+});
+
+app.get('/api/mass-extract/:id/analytics', (req, res) => {
+  res.json({ totalResults: 0, categories: {}, cities: {}, avgRating: 0, withEmail: 0, withPhone: 0, withWebsite: 0 });
+});
+
+app.get('/api/mass-extract/:id/export', (req, res) => {
+  res.status(503).json({ error: 'Export requires the Java backend.' });
+});
+
+app.delete('/api/mass-extract/:id', (req, res) => {
+  res.status(404).json({ error: 'Job not found.' });
+});
+
+app.post('/api/mass-extract/:id/:action', (req, res) => {
+  res.status(503).json({ error: 'Mass Extract controls require the Java backend.' });
+});
+
+app.get('/api/actuator/health', (req, res) => {
+  res.json({ status: 'UP', mode: 'frontend-only' });
+});
+
 // Serve static frontend files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
