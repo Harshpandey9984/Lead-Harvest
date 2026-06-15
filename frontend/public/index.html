@@ -2868,12 +2868,7 @@
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          if (response.status === 503 && errorData.status === 'UNAVAILABLE') {
-            showToast('Mass Extract requires the Java backend. Run the project locally with Docker to use this feature.');
-            resetMassExtractButtons();
-            return;
-          }
-          throw new Error(`Failed to start job: ${response.status}`);
+          throw new Error(errorData.error || `Failed to start job: ${response.status}`);
         }
 
         const job = await response.json();
@@ -2885,7 +2880,7 @@
 
       } catch (error) {
         console.error(error);
-        showToast('Failed to connect to Java backend. Is the server running on port 8080?');
+        showToast(error.message || 'Failed to start extraction. Please try again.');
         resetMassExtractButtons();
       }
     }

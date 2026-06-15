@@ -1324,48 +1324,433 @@ app.post('/lh-api/lead-harvest/analyze', async (req, res) => {
   res.json({ processedCount: results.length, results });
 });
 
-// ── Mass Extract stub routes (graceful fallback when Java backend is not available) ──
-// These endpoints return empty/placeholder data so the frontend works without errors
-// on Render deployments where the full Java backend isn't running.
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  MASS EXTRACT — Full implementation (Google Places API + OSM fallback)
+// ══════════════════════════════════════════════════════════════════════════════
+// Set GOOGLE_MAPS_API_KEY env var on Render for full Google Places data.
+// Without a key, falls back to OpenStreetMap Overpass API (free, real data).
+
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || '';
+const massExtractJobs = new Map(); // In-memory job storage
+let jobIdCounter = 1;
+
+// ── Geocode a location name to lat/lng ──
+async function geocodeLocation(locationName) {
+  // Try Google Geocoding first if key is available
+  if (GOOGLE_MAPS_API_KEY) {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationName)}&key=${GOOGLE_MAPS_API_KEY}`;
+      const { data } = await axios.get(url, { timeout: 10000 });
+      if (data.status === 'OK' && data.results?.length) {
+        const loc = data.results[0].geometry.location;
+        return { lat: loc.lat, lng: loc.lng };
+      }
+    } catch (e) { console.error('Google geocode failed, falling back to Nominatim:', e.message); }
+  }
+  // Fallback: OpenStreetMap Nominatim
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationName)}&format=json&limit=1`;
+  const { data } = await axios.get(url, { timeout: 10000, headers: { 'User-Agent': 'LeadHarvest/1.0' } });
+  if (data?.length) {
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  }
+  throw new Error(`Could not geocode location: ${locationName}`);
+}
+
+// ── Google Places API: Text Search (New API) ──
+async function searchGooglePlaces(query, location, radiusKm, maxResults) {
+  const results = [];
+  const { lat, lng } = await geocodeLocation(location);
+  const radiusMeters = radiusKm * 1000;
+
+  // Use Places API (Nearby Search or Text Search)
+  let nextPageToken = null;
+  let fetched = 0;
+
+  while (fetched < maxResults) {
+    let url;
+    if (nextPageToken) {
+      url = `https://maps.googleapis.com/maps/api/place/textsearch/json?pagetoken=${nextPageToken}&key=${GOOGLE_MAPS_API_KEY}`;
+      await new Promise(r => setTimeout(r, 2000)); // Google requires 2s delay for pagetoken
+    } else {
+      url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query + ' in ' + location)}&location=${lat},${lng}&radius=${radiusMeters}&key=${GOOGLE_MAPS_API_KEY}`;
+    }
+
+    const { data } = await axios.get(url, { timeout: 15000 });
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      console.error('Google Places API error:', data.status, data.error_message);
+      break;
+    }
+
+    for (const place of (data.results || [])) {
+      if (fetched >= maxResults) break;
+      // Get detailed info for each place
+      let details = {};
+      try {
+        const detailUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_address,formatted_phone_number,international_phone_number,website,url,rating,user_ratings_total,opening_hours,business_status,types,photos&key=${GOOGLE_MAPS_API_KEY}`;
+        const detailResp = await axios.get(detailUrl, { timeout: 10000 });
+        details = detailResp.data?.result || {};
+      } catch (e) { /* use basic data */ }
+
+      results.push({
+        placeId: place.place_id,
+        name: details.name || place.name,
+        category: query,
+        subcategory: (place.types || []).join(', '),
+        description: null,
+        rating: details.rating || place.rating || null,
+        reviewsCount: details.user_ratings_total || place.user_ratings_total || 0,
+        phone: details.international_phone_number || details.formatted_phone_number || null,
+        secondaryPhone: null,
+        email: null,
+        websiteUrl: details.website || null,
+        address: details.formatted_address || place.formatted_address || null,
+        city: location,
+        state: null,
+        country: null,
+        postalCode: null,
+        latitude: place.geometry?.location?.lat || lat,
+        longitude: place.geometry?.location?.lng || lng,
+        mapsUrl: details.url || `https://www.google.com/maps/place/?q=place_id:${place.place_id}`,
+        priceLevel: place.price_level != null ? ['Free', 'Inexpensive', 'Moderate', 'Expensive', 'Very Expensive'][place.price_level] : null,
+        businessStatus: (details.business_status || place.business_status || 'OPERATIONAL').replace(/_/g, ' '),
+        openingHours: details.opening_hours?.weekday_text?.join(' | ') || null,
+        openNow: details.opening_hours?.open_now ?? null,
+        permanentlyClosed: (place.business_status === 'CLOSED_PERMANENTLY'),
+        logoUrl: null,
+        photos: (details.photos || place.photos || []).slice(0, 3).map(p =>
+          `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${p.photo_reference}&key=${GOOGLE_MAPS_API_KEY}`
+        ),
+        socialLinks: [],
+        scrapedEmails: [],
+        scrapedPhones: [],
+      });
+      fetched++;
+    }
+
+    nextPageToken = data.next_page_token;
+    if (!nextPageToken) break;
+  }
+
+  return results;
+}
+
+// ── OpenStreetMap Overpass API: Search nearby businesses ──
+async function searchOverpassPlaces(query, location, radiusKm, maxResults) {
+  const results = [];
+  const { lat, lng } = await geocodeLocation(location);
+  const radiusMeters = radiusKm * 1000;
+
+  // Map common queries to OSM tags
+  const tagMap = {
+    cafe: 'amenity=cafe', coffee: 'amenity=cafe',
+    restaurant: 'amenity=restaurant', food: 'amenity=restaurant',
+    hotel: 'tourism=hotel', hostel: 'tourism=hostel',
+    gym: 'leisure=fitness_centre', fitness: 'leisure=fitness_centre',
+    school: 'amenity=school', college: 'amenity=college', university: 'amenity=university',
+    hospital: 'amenity=hospital', clinic: 'amenity=clinic', doctor: 'amenity=doctors',
+    pharmacy: 'amenity=pharmacy', dentist: 'amenity=dentist',
+    salon: 'shop=hairdresser', barber: 'shop=barber', spa: 'leisure=spa',
+    bank: 'amenity=bank', atm: 'amenity=atm',
+    supermarket: 'shop=supermarket', grocery: 'shop=convenience',
+    mall: 'shop=mall', shopping: 'shop=mall',
+    petrol: 'amenity=fuel', gas: 'amenity=fuel',
+    parking: 'amenity=parking',
+    library: 'amenity=library', museum: 'tourism=museum',
+    temple: 'amenity=place_of_worship', church: 'amenity=place_of_worship', mosque: 'amenity=place_of_worship',
+    police: 'amenity=police', fire: 'amenity=fire_station',
+    park: 'leisure=park', garden: 'leisure=garden',
+    cinema: 'amenity=cinema', theatre: 'amenity=theatre',
+    bar: 'amenity=bar', pub: 'amenity=pub', nightclub: 'amenity=nightclub',
+    bakery: 'shop=bakery', butcher: 'shop=butcher',
+    car: 'shop=car', auto: 'shop=car_repair',
+    real_estate: 'office=estate_agent', 'real estate': 'office=estate_agent',
+    software: 'office=it', it: 'office=it', tech: 'office=it',
+    lawyer: 'office=lawyer', legal: 'office=lawyer',
+    insurance: 'office=insurance', travel: 'office=travel_agent',
+  };
+
+  const queryLower = query.toLowerCase().trim();
+  const osmTag = tagMap[queryLower] || `amenity=${queryLower}`;
+  const [tagKey, tagValue] = osmTag.split('=');
+
+  const overpassQuery = `
+    [out:json][timeout:30];
+    (
+      node["${tagKey}"="${tagValue}"](around:${radiusMeters},${lat},${lng});
+      way["${tagKey}"="${tagValue}"](around:${radiusMeters},${lat},${lng});
+    );
+    out center body ${maxResults};
+  `;
+
+  const { data } = await axios.post(
+    'https://overpass-api.de/api/interpreter',
+    `data=${encodeURIComponent(overpassQuery)}`,
+    { timeout: 30000, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'LeadHarvest/1.0' } }
+  );
+
+  for (const el of (data.elements || [])) {
+    const tags = el.tags || {};
+    const elLat = el.lat || el.center?.lat;
+    const elLng = el.lon || el.center?.lon;
+    const name = tags.name || tags['name:en'];
+    if (!name) continue;
+
+    results.push({
+      placeId: `${el.type}/${el.id}`,
+      name: name,
+      category: query,
+      subcategory: tags.cuisine || tags.shop || tags[tagKey] || tagValue,
+      description: tags.description || null,
+      rating: null,
+      reviewsCount: 0,
+      phone: tags.phone || tags['contact:phone'] || null,
+      secondaryPhone: tags['phone:mobile'] || tags['contact:mobile'] || null,
+      email: tags.email || tags['contact:email'] || null,
+      websiteUrl: tags.website || tags['contact:website'] || tags.url || null,
+      address: [tags['addr:housenumber'], tags['addr:street'], tags['addr:city'], tags['addr:postcode']].filter(Boolean).join(', ') || null,
+      city: tags['addr:city'] || location,
+      state: tags['addr:state'] || null,
+      country: tags['addr:country'] || null,
+      postalCode: tags['addr:postcode'] || null,
+      latitude: elLat,
+      longitude: elLng,
+      mapsUrl: `https://www.openstreetmap.org/${el.type}/${el.id}`,
+      priceLevel: null,
+      businessStatus: 'OPERATIONAL',
+      openingHours: tags.opening_hours || null,
+      openNow: null,
+      permanentlyClosed: false,
+      logoUrl: null,
+      photos: [],
+      socialLinks: [tags['contact:facebook'], tags['contact:instagram'], tags['contact:twitter']].filter(Boolean),
+      scrapedEmails: [],
+      scrapedPhones: [],
+    });
+  }
+
+  return results;
+}
+
+// ── Run extraction job asynchronously ──
+async function runMassExtractJob(jobId) {
+  const job = massExtractJobs.get(jobId);
+  if (!job) return;
+
+  job.status = 'RUNNING';
+  job.updatedAt = new Date().toISOString();
+
+  try {
+    let results;
+    const useGoogle = GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'mock';
+
+    if (useGoogle) {
+      console.log(`[Mass Extract Job ${jobId}] Using Google Places API`);
+      results = await searchGooglePlaces(job.query, job.location, job.radiusKm, job.maxResults);
+    } else {
+      console.log(`[Mass Extract Job ${jobId}] Using OpenStreetMap Overpass API (no Google key)`);
+      results = await searchOverpassPlaces(job.query, job.location, job.radiusKm, job.maxResults);
+    }
+
+    // Assign IDs and jobId to results
+    results.forEach((r, i) => { r.id = i + 1; r.jobId = jobId; });
+
+    job.results = results;
+    job.totalFound = results.length;
+    job.processedCount = results.length;
+    job.successCount = results.length;
+    job.failedCount = 0;
+    job.status = 'COMPLETED';
+    job.speed = results.length > 0 ? (results.length / Math.max(1, (Date.now() - new Date(job.createdAt).getTime()) / 1000)).toFixed(2) : 0;
+    job.etaSeconds = 0;
+    job.updatedAt = new Date().toISOString();
+
+    console.log(`[Mass Extract Job ${jobId}] Completed! Found ${results.length} businesses using ${useGoogle ? 'Google Places' : 'OpenStreetMap'}`);
+  } catch (error) {
+    job.status = 'FAILED';
+    job.errorMessage = error.message;
+    job.updatedAt = new Date().toISOString();
+    console.error(`[Mass Extract Job ${jobId}] Failed:`, error.message);
+  }
+}
+
+// ── API Routes ──
 
 app.get('/api/mass-extract/history', (req, res) => {
-  res.json([]);
+  const jobs = Array.from(massExtractJobs.values())
+    .map(({ results, ...rest }) => rest) // Exclude results from history
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json(jobs);
 });
 
 app.post('/api/mass-extract', (req, res) => {
-  res.status(503).json({
-    error: 'Mass Extract requires the full Java backend',
-    message: 'The Mass Extract feature uses OpenStreetMap Overpass API and requires the Java Spring Boot backend with PostgreSQL. Please run the project locally with Docker to use this feature.',
-    status: 'UNAVAILABLE'
-  });
+  const { query, location, radiusKm = 10, maxResults = 50 } = req.body;
+  if (!query || !location) {
+    return res.status(400).json({ error: 'query and location are required' });
+  }
+
+  const jobId = jobIdCounter++;
+  const job = {
+    id: jobId,
+    query,
+    location,
+    radiusKm: Number(radiusKm),
+    maxResults: Number(maxResults),
+    status: 'PENDING',
+    totalFound: 0,
+    processedCount: 0,
+    successCount: 0,
+    failedCount: 0,
+    errorMessage: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    speed: 0,
+    etaSeconds: 0,
+    results: [],
+  };
+
+  massExtractJobs.set(jobId, job);
+
+  // Start extraction asynchronously
+  runMassExtractJob(jobId);
+
+  const { results, ...jobMeta } = job;
+  res.json(jobMeta);
 });
 
 app.get('/api/mass-extract/:id/progress', (req, res) => {
-  res.status(404).json({ error: 'Job not found. Mass Extract requires the Java backend.' });
+  const job = massExtractJobs.get(Number(req.params.id));
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  const { results, ...jobMeta } = job;
+  res.json(jobMeta);
 });
 
 app.get('/api/mass-extract/:id/results', (req, res) => {
-  res.json({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 10, empty: true });
+  const job = massExtractJobs.get(Number(req.params.id));
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  const page = parseInt(req.query.page) || 0;
+  const size = parseInt(req.query.size) || 10;
+  const allResults = job.results || [];
+  const start = page * size;
+  const content = allResults.slice(start, start + size);
+
+  res.json({
+    content,
+    totalElements: allResults.length,
+    totalPages: Math.ceil(allResults.length / size),
+    number: page,
+    size,
+    first: page === 0,
+    last: start + size >= allResults.length,
+    empty: content.length === 0,
+  });
 });
 
 app.get('/api/mass-extract/:id/analytics', (req, res) => {
-  res.json({ totalResults: 0, categories: {}, cities: {}, avgRating: 0, withEmail: 0, withPhone: 0, withWebsite: 0 });
+  const job = massExtractJobs.get(Number(req.params.id));
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  const results = job.results || [];
+  const categories = {};
+  const cities = {};
+  let totalRating = 0;
+  let ratedCount = 0;
+  let withEmail = 0, withPhone = 0, withWebsite = 0;
+
+  for (const r of results) {
+    categories[r.category || 'Unknown'] = (categories[r.category || 'Unknown'] || 0) + 1;
+    cities[r.city || 'Unknown'] = (cities[r.city || 'Unknown'] || 0) + 1;
+    if (r.rating) { totalRating += r.rating; ratedCount++; }
+    if (r.email) withEmail++;
+    if (r.phone) withPhone++;
+    if (r.websiteUrl) withWebsite++;
+  }
+
+  res.json({
+    totalResults: results.length,
+    categories,
+    cities,
+    avgRating: ratedCount ? (totalRating / ratedCount).toFixed(1) : 0,
+    withEmail,
+    withPhone,
+    withWebsite,
+    dataSource: GOOGLE_MAPS_API_KEY ? 'Google Places API' : 'OpenStreetMap',
+  });
 });
 
 app.get('/api/mass-extract/:id/export', (req, res) => {
-  res.status(503).json({ error: 'Export requires the Java backend.' });
+  const job = massExtractJobs.get(Number(req.params.id));
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  const format = req.query.format || 'csv';
+  const results = job.results || [];
+
+  if (format === 'csv') {
+    const headers = ['Name', 'Category', 'Rating', 'Reviews', 'Phone', 'Email', 'Website', 'Address', 'City', 'Latitude', 'Longitude', 'Maps URL', 'Business Status', 'Opening Hours'];
+    const rows = results.map(r => [
+      r.name, r.category, r.rating || '', r.reviewsCount, r.phone || '', r.email || '', r.websiteUrl || '',
+      r.address || '', r.city || '', r.latitude, r.longitude, r.mapsUrl || '', r.businessStatus || '', r.openingHours || ''
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="mass-extract-${job.query}-${job.location}.csv"`);
+    res.send(csv);
+  } else {
+    res.json(results);
+  }
 });
 
 app.delete('/api/mass-extract/:id', (req, res) => {
-  res.status(404).json({ error: 'Job not found.' });
+  const id = Number(req.params.id);
+  if (massExtractJobs.has(id)) {
+    massExtractJobs.delete(id);
+    res.json({ message: 'Job deleted' });
+  } else {
+    res.status(404).json({ error: 'Job not found' });
+  }
 });
 
-app.post('/api/mass-extract/:id/:action', (req, res) => {
-  res.status(503).json({ error: 'Mass Extract controls require the Java backend.' });
+app.post('/api/mass-extract/:id/pause', (req, res) => {
+  const job = massExtractJobs.get(Number(req.params.id));
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  job.status = 'PAUSED'; job.updatedAt = new Date().toISOString();
+  const { results, ...meta } = job;
+  res.json(meta);
+});
+
+app.post('/api/mass-extract/:id/resume', (req, res) => {
+  const job = massExtractJobs.get(Number(req.params.id));
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  job.status = 'RUNNING'; job.updatedAt = new Date().toISOString();
+  const { results, ...meta } = job;
+  res.json(meta);
+});
+
+app.post('/api/mass-extract/:id/stop', (req, res) => {
+  const job = massExtractJobs.get(Number(req.params.id));
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  job.status = 'STOPPED'; job.updatedAt = new Date().toISOString();
+  const { results, ...meta } = job;
+  res.json(meta);
+});
+
+app.post('/api/mass-extract/:id/rerun', (req, res) => {
+  const job = massExtractJobs.get(Number(req.params.id));
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  job.status = 'PENDING'; job.results = []; job.totalFound = 0; job.processedCount = 0;
+  job.successCount = 0; job.failedCount = 0; job.updatedAt = new Date().toISOString();
+  runMassExtractJob(Number(req.params.id));
+  const { results, ...meta } = job;
+  res.json(meta);
 });
 
 app.get('/api/actuator/health', (req, res) => {
-  res.json({ status: 'UP', mode: 'frontend-only' });
+  res.json({
+    status: 'UP',
+    mode: GOOGLE_MAPS_API_KEY ? 'google-places' : 'openstreetmap-fallback',
+    massExtractAvailable: true,
+  });
 });
 
 // Serve static frontend files from 'public' directory
