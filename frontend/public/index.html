@@ -1683,10 +1683,8 @@
     const BACKEND_ORIGIN = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3100'
       : window.location.origin;
-    const JAVA_BACKEND_ORIGIN = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://localhost:8080'
-      : window.location.origin;
-    let JAVA_BACKEND_AVAILABLE = null; // null = unknown, true = reachable, false = unreachable
+    const JAVA_BACKEND_ORIGIN = BACKEND_ORIGIN; // Mass Extract routes now live in api-server.js
+    let JAVA_BACKEND_AVAILABLE = true;
     const USE_LIVE_BACKEND = true;
     const FALLBACK_SUMMARY = {
       platformName: 'Lead Harvest',
