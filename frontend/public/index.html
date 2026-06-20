@@ -1274,7 +1274,7 @@
                 <input class="text-input" id="massLocation" placeholder="e.g. Bhopal, Madhya Pradesh, India" value="Bhopal">
               </label>
               <div class="file-row">
-                <div style="flex: 1 1 45%;">
+                <div style="flex: 1 1 30%;">
                   <label>Search Radius (km)
                     <select class="select-input" id="massRadius">
                       <option value="1">1 km</option>
@@ -1285,7 +1285,7 @@
                     </select>
                   </label>
                 </div>
-                <div style="flex: 1 1 45%;">
+                <div style="flex: 1 1 30%;">
                   <label>Maximum Leads
                     <select class="select-input" id="massMaxResults">
                       <option value="10">10 results</option>
@@ -1295,6 +1295,12 @@
                       <option value="200">200 results</option>
                     </select>
                   </label>
+                </div>
+                <div style="flex: 1 1 30%;">
+                  <label>Minimum Rating ★
+                    <input class="text-input" id="massMinRatingInput" type="number" min="0" max="5" step="0.5" placeholder="e.g. 3.5" value="" style="width: 100%;">
+                  </label>
+                  <small style="opacity: 0.55; font-size: 0.75rem; margin-top: 4px; display: block;">Leave empty for all ratings. Enter 0–5 (e.g. 3.5, 4, 4.5)</small>
                 </div>
               </div>
             </div>
@@ -1386,13 +1392,10 @@
           <!-- Filters Bar -->
           <div class="filter-bar" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; width: 100%;">
             <input class="search-box" id="massSearchInput" placeholder="Filter leads by name, category, or city..." style="flex: 2; min-width: 200px;">
-            <select class="select-input" id="massRatingFilter" style="flex: 0 0 auto; min-width: 160px;">
-              <option value="all">★ All Ratings</option>
-              <option value="4.5">4.5+ ★ Excellent</option>
-              <option value="4.0">4.0+ ★ Very Good</option>
-              <option value="3.5">3.5+ ★ Good</option>
-              <option value="3.0">3.0+ ★ Average</option>
-            </select>
+            <div style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 14px; padding: 6px 12px; flex: 0 0 auto;">
+              <span style="font-size: 0.85rem; opacity: 0.7; white-space: nowrap;">Min Rating ★</span>
+              <input class="text-input" id="massRatingFilter" type="number" min="0" max="5" step="0.5" placeholder="Any" value="" style="width: 70px; padding: 6px 8px; text-align: center; font-size: 0.9rem;">
+            </div>
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius:14px; padding: 10px 14px;">
               <label style="display: flex; align-items: center; gap: 6px; cursor:pointer;"><input class="checkbox-cell" id="massEmailFilter" type="checkbox"> <span>With Email</span></label>
               <label style="display: flex; align-items: center; gap: 6px; cursor:pointer;"><input class="checkbox-cell" id="massWebsiteFilter" type="checkbox"> <span>With Website</span></label>
@@ -1868,6 +1871,7 @@
       massExportJson: document.getElementById('massExportJson'),
       massSearchInput: document.getElementById('massSearchInput'),
       massRatingFilter: document.getElementById('massRatingFilter'),
+      massMinRatingInput: document.getElementById('massMinRatingInput'),
       massEmailFilter: document.getElementById('massEmailFilter'),
       massWebsiteFilter: document.getElementById('massWebsiteFilter'),
       massResultsTable: document.getElementById('massResultsTable'),
@@ -2830,6 +2834,7 @@
       const location = elements.massLocation.value.trim();
       const radiusKm = parseInt(elements.massRadius.value);
       const maxResults = parseInt(elements.massMaxResults.value);
+      const minRating = parseFloat(elements.massMinRatingInput?.value) || 0;
 
       if (!query || !location) {
         showToast('Search Query and Target Location are required!');
@@ -2859,11 +2864,16 @@
       elements.massFoundChip.textContent = '0 found';
       elements.massEmailsChip.textContent = '0 emails';
 
+      // Sync rating filter in results bar with the search config value
+      if (minRating > 0) {
+        elements.massRatingFilter.value = minRating;
+      }
+
       try {
         const response = await fetch(`${JAVA_BACKEND_ORIGIN}/api/mass-extract`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, location, radiusKm, maxResults })
+          body: JSON.stringify({ query, location, radiusKm, maxResults, minRating })
         });
 
         if (!response.ok) {
@@ -3152,7 +3162,7 @@
     async function fetchMassExtractResults(jobId) {
       const page = state.massExtract.page;
       const search = elements.massSearchInput.value.trim();
-      const minRating = elements.massRatingFilter.value !== 'all' ? elements.massRatingFilter.value : '';
+      const minRating = elements.massRatingFilter.value.trim() || '';
       const hasEmail = elements.massEmailFilter.checked;
       const hasWebsite = elements.massWebsiteFilter.checked;
 
@@ -3443,10 +3453,20 @@
         state.massExtract.page = 0;
         if (state.massExtract.activeJobId) fetchMassExtractResults(state.massExtract.activeJobId);
       });
-      elements.massRatingFilter.addEventListener('change', () => {
+      elements.massRatingFilter.addEventListener('input', () => {
+        const val = elements.massRatingFilter.value;
+        if (elements.massMinRatingInput) elements.massMinRatingInput.value = val;
         state.massExtract.page = 0;
         if (state.massExtract.activeJobId) fetchMassExtractResults(state.massExtract.activeJobId);
       });
+      if (elements.massMinRatingInput) {
+        elements.massMinRatingInput.addEventListener('input', () => {
+          const val = elements.massMinRatingInput.value;
+          elements.massRatingFilter.value = val;
+          state.massExtract.page = 0;
+          if (state.massExtract.activeJobId) fetchMassExtractResults(state.massExtract.activeJobId);
+        });
+      }
       elements.massEmailFilter.addEventListener('change', () => {
         state.massExtract.page = 0;
         if (state.massExtract.activeJobId) fetchMassExtractResults(state.massExtract.activeJobId);

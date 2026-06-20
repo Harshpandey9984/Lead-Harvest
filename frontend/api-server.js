@@ -1550,6 +1550,12 @@ async function runMassExtractJob(jobId) {
       console.log(`[Mass Extract Job ${jobId}] Using OpenStreetMap Overpass API (no Google key)`);
       results = await searchOverpassPlaces(job.query, job.location, job.radiusKm, job.maxResults);
     }
+    // Apply minRating post-filter if specified
+    if (job.minRating > 0) {
+      const beforeCount = results.length;
+      results = results.filter(r => r.rating && r.rating >= job.minRating);
+      console.log(`[Mass Extract Job ${jobId}] Rating filter (>=${job.minRating}★): ${beforeCount} → ${results.length} results`);
+    }
 
     // Assign IDs and jobId to results
     results.forEach((r, i) => { r.id = i + 1; r.jobId = jobId; });
@@ -1583,7 +1589,7 @@ app.get('/api/mass-extract/history', (req, res) => {
 });
 
 app.post('/api/mass-extract', (req, res) => {
-  const { query, location, radiusKm = 10, maxResults = 50 } = req.body;
+  const { query, location, radiusKm = 10, maxResults = 50, minRating = 0 } = req.body;
   if (!query || !location) {
     return res.status(400).json({ error: 'query and location are required' });
   }
@@ -1595,6 +1601,7 @@ app.post('/api/mass-extract', (req, res) => {
     location,
     radiusKm: Number(radiusKm),
     maxResults: Number(maxResults),
+    minRating: Number(minRating),
     status: 'PENDING',
     totalFound: 0,
     processedCount: 0,
@@ -1630,18 +1637,36 @@ app.get('/api/mass-extract/:id/results', (req, res) => {
 
   const page = parseInt(req.query.page) || 0;
   const size = parseInt(req.query.size) || 10;
-  const allResults = job.results || [];
+  const search = (req.query.search || '').toLowerCase().trim();
+  const minRating = parseFloat(req.query.minRating) || 0;
+  const hasEmail = req.query.hasEmail === 'true';
+  const hasWebsite = req.query.hasWebsite === 'true';
+
+  // Apply filters
+  let filtered = (job.results || []).filter(r => {
+    if (search && !(
+      (r.name || '').toLowerCase().includes(search) ||
+      (r.category || '').toLowerCase().includes(search) ||
+      (r.city || '').toLowerCase().includes(search) ||
+      (r.address || '').toLowerCase().includes(search)
+    )) return false;
+    if (minRating > 0 && (!r.rating || r.rating < minRating)) return false;
+    if (hasEmail && !r.email) return false;
+    if (hasWebsite && !r.websiteUrl) return false;
+    return true;
+  });
+
   const start = page * size;
-  const content = allResults.slice(start, start + size);
+  const content = filtered.slice(start, start + size);
 
   res.json({
     content,
-    totalElements: allResults.length,
-    totalPages: Math.ceil(allResults.length / size),
+    totalElements: filtered.length,
+    totalPages: Math.ceil(filtered.length / size),
     number: page,
     size,
     first: page === 0,
-    last: start + size >= allResults.length,
+    last: start + size >= filtered.length,
     empty: content.length === 0,
   });
 });
