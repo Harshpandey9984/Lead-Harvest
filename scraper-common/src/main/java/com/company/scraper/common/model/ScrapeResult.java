@@ -12,6 +12,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "scrape_result")
@@ -42,7 +44,8 @@ public class ScrapeResult {
     @Column(nullable = false)
     private boolean changeDetected;
 
-    @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "payload")
     private String payload;
 
     private String contentHash;

@@ -5,8 +5,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+
 @SpringBootApplication(scanBasePackages = "com.company.scraper")
 @EnableConfigurationProperties(AppProperties.class)
+@EnableJpaRepositories(basePackages = "com.company.scraper")
+@EntityScan(basePackages = "com.company.scraper")
 public class ScraperWorkerApplication {
 
     public static void main(String[] args) {

@@ -12,6 +12,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "mass_extract_result")
@@ -81,6 +83,7 @@ public class MassExtractResult {
     @Column(name = "business_status")
     private String businessStatus;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "opening_hours", columnDefinition = "jsonb")
     private String openingHours;
 
@@ -93,12 +96,14 @@ public class MassExtractResult {
     @Column(name = "logo_url")
     private String logoUrl;
 
-    @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "photos", columnDefinition = "jsonb")
     private String photos;
 
     @Column(name = "reviews_summary", length = 4000)
     private String reviewsSummary;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "reviews_keywords", columnDefinition = "jsonb")
     private String reviewsKeywords;
 

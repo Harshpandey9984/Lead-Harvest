@@ -10,7 +10,7 @@ spring:
     password: ${POSTGRES_PASSWORD:scraper}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     properties:
       hibernate:
         jdbc:
@@ -66,6 +66,10 @@ scraper:
     telegram-bot-token: ${TELEGRAM_BOT_TOKEN:}
     telegram-chat-id: ${TELEGRAM_CHAT_ID:}
     webhook-url: ${WEBHOOK_URL:}
+
+google:
+  maps:
+    api-key: ${GOOGLE_MAPS_API_KEY:mock}
 
 management:
   endpoints:

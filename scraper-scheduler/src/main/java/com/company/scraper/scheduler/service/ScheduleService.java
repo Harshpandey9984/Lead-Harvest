@@ -43,7 +43,14 @@ public class ScheduleService {
     }
 
     private Instant nextRun(String cronExpression, Instant from) {
-        CronExpression cron = CronExpression.parse(cronExpression);
+        String normalizedCron = cronExpression;
+        if (cronExpression != null) {
+            String[] parts = cronExpression.trim().split("\\s+");
+            if (parts.length == 5) {
+                normalizedCron = "0 " + cronExpression.trim();
+            }
+        }
+        CronExpression cron = CronExpression.parse(normalizedCron);
         return cron.next(from.atZone(ZoneId.of("UTC"))).toInstant();
     }
 }
